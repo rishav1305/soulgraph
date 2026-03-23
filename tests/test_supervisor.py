@@ -27,6 +27,7 @@ class TestSupervisorNode:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = supervisor_node(state)  # type: ignore[arg-type]
         assert result["next_agent"] == "rag"
@@ -40,6 +41,7 @@ class TestSupervisorNode:
             "eval_report": {"score": 0.9},
             "next_agent": "",
             "session_id": "sess-1",
+            "tool_results": [],
         }
         result = supervisor_node(state)  # type: ignore[arg-type]
         assert result["question"] == "Test?"
@@ -64,6 +66,7 @@ class TestBuildGraph:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = graph.invoke(initial)
         assert "documents" in result
@@ -80,6 +83,7 @@ class TestBuildGraph:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = graph.invoke(initial)
         assert "eval_report" in result

@@ -37,6 +37,7 @@ class TestEvaluatorAgent:
             "eval_report": {},
             "next_agent": "evaluator",
             "session_id": "test",
+            "tool_results": [],
         }
         result = evaluator(state)
         assert "eval_report" in result
@@ -51,6 +52,7 @@ class TestEvaluatorAgent:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = evaluator(state)
         assert result["next_agent"] == "END"

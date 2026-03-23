@@ -44,6 +44,7 @@ def main() -> None:
         "eval_report": {},
         "next_agent": "",
         "session_id": args.session_id,
+        "tool_results": [],
     }
 
     result = graph.invoke(initial_state)

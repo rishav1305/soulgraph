@@ -31,6 +31,7 @@ class TestRAGAgent:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = agent(state)
         assert "documents" in result
@@ -46,6 +47,7 @@ class TestRAGAgent:
             "eval_report": {},
             "next_agent": "",
             "session_id": "test",
+            "tool_results": [],
         }
         result = agent(state)
         assert result["next_agent"] == "evaluator"

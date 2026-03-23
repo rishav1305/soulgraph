@@ -34,3 +34,6 @@ class AgentState(TypedDict):
 
     # Session identifier for Redis state tracking.
     session_id: str
+
+    # Tool execution results from the Tool agent (Phase 2).
+    tool_results: list[dict[str, Any]]
