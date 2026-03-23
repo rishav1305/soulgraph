@@ -52,12 +52,14 @@ def route_from_supervisor(state: AgentState) -> str:
 def build_graph(
     rag_agent: RAGAgent | None = None,
     evaluator: EvaluatorAgent | None = None,
+    checkpointer: Any | None = None,
 ) -> Any:
     """Build and compile the SoulGraph StateGraph.
 
     Args:
         rag_agent: RAG agent instance. Uses defaults if None.
         evaluator: Evaluator agent instance. Uses defaults if None.
+        checkpointer: Optional LangGraph checkpointer (e.g. RedisSaver). None = stateless.
 
     Returns:
         Compiled LangGraph graph ready for invocation.
@@ -86,4 +88,4 @@ def build_graph(
     graph.add_edge("rag", "evaluator")
     graph.add_edge("evaluator", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
