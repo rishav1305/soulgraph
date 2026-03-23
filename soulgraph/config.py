@@ -18,6 +18,40 @@ class Settings:
     chroma_port: int = field(default_factory=lambda: int(os.environ.get("CHROMA_PORT", "8001")))
     log_level: str = field(default_factory=lambda: os.environ.get("SOULGRAPH_LOG_LEVEL", "INFO"))
 
+    # Phase 2 — Model Router
+    litellm_reasoning_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "LITELLM_REASONING_MODEL", "claude-3-5-haiku-20241022"
+        )
+    )
+    litellm_fast_model: str = field(
+        default_factory=lambda: os.environ.get("LITELLM_FAST_MODEL", "claude-3-5-haiku-20241022")
+    )
+
+    # Phase 2 — LangSmith
+    langchain_tracing_v2: bool = field(
+        default_factory=lambda: os.environ.get("LANGCHAIN_TRACING_V2", "").lower() == "true"
+    )
+    langchain_api_key: str = field(default_factory=lambda: os.environ.get("LANGCHAIN_API_KEY", ""))
+    langchain_project: str = field(
+        default_factory=lambda: os.environ.get("LANGCHAIN_PROJECT", "soulgraph-dev")
+    )
+
+    # Phase 2 — LangFuse
+    langfuse_host: str = field(
+        default_factory=lambda: os.environ.get("LANGFUSE_HOST", "http://localhost:3100")
+    )
+    langfuse_public_key: str = field(
+        default_factory=lambda: os.environ.get("LANGFUSE_PUBLIC_KEY", "")
+    )
+    langfuse_secret_key: str = field(
+        default_factory=lambda: os.environ.get("LANGFUSE_SECRET_KEY", "")
+    )
+
+    # Phase 2 — API
+    api_host: str = field(default_factory=lambda: os.environ.get("SOULGRAPH_API_HOST", "0.0.0.0"))
+    api_port: int = field(default_factory=lambda: int(os.environ.get("SOULGRAPH_API_PORT", "8080")))
+
     def validate(self) -> None:
         """Raise ValueError if required settings are missing."""
         if not self.anthropic_api_key:
