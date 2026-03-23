@@ -68,7 +68,7 @@ cp .env.example .env          # Add your ANTHROPIC_API_KEY
 pip install -e ".[dev]"
 
 # 4. Ask a question
-python -m soulgraph.cli "What is retrieval-augmented generation?"
+soulgraph "What is retrieval-augmented generation?"
 ```
 
 **Expected output:**
@@ -122,7 +122,7 @@ make infra-down  # Stop services
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **Phase 0** | Repo + Docker + Scaffold | ✅ Done |
-| **Phase 1** | Supervisor + RAG Agent + Evaluator | 🚧 In progress |
+| **Phase 1** | Supervisor + RAG Agent + Evaluator | ✅ Done (Mar 23) |
 | **Phase 2** | Redis state bus + Model Router | Planned (Apr 3) |
 | **Phase 3** | Full POC + Eval pipeline + Notebook | Planned (Apr 11) |
 | **Ongoing** | One domain agent per week | Continuous |
