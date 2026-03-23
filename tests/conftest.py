@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any as _Any
+
 import pytest
 
 from soulgraph.agents.evaluator import EvaluatorAgent
@@ -24,6 +26,19 @@ class MockRAGAgent(RAGAgent):
 
     def retrieve(self, query: str, n_results: int = 5) -> list[str]:  # noqa: ARG002
         return self.fixed_docs[: min(n_results, len(self.fixed_docs))]
+
+
+class MockRouter:
+    """Stub router for tests."""
+
+    def __init__(self, response: str = "question_answering", raises: bool = False) -> None:
+        self._response = response
+        self._raises = raises
+
+    def complete(self, task: _Any, messages: _Any, **kwargs: _Any) -> str:
+        if self._raises:
+            raise RuntimeError("mock failure")
+        return self._response
 
 
 @pytest.fixture

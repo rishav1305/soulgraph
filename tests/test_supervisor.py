@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 from soulgraph.supervisor import build_graph, classify_intent, supervisor_node
-from tests.conftest import MockRAGAgent
+from tests.conftest import MockRAGAgent, MockRouter
 
 
 class TestClassifyIntent:
-    def test_returns_question_answering_for_any_input(self) -> None:
-        assert classify_intent("What is RAG?") == "question_answering"
+    def test_returns_question_answering(self) -> None:
+        router = MockRouter(response="question_answering")
+        assert classify_intent("What is RAG?", router=router) == "question_answering"
 
-    def test_returns_question_answering_for_empty_string(self) -> None:
-        assert classify_intent("") == "question_answering"
+    def test_falls_back_on_unknown_intent(self) -> None:
+        router = MockRouter(response="garbage_intent")
+        assert classify_intent("X", router=router) == "question_answering"
 
-    def test_returns_question_answering_for_long_query(self) -> None:
-        assert classify_intent("a" * 1000) == "question_answering"
+    def test_falls_back_on_router_error(self) -> None:
+        router = MockRouter(raises=True)
+        assert classify_intent("X", router=router) == "question_answering"
 
 
 class TestSupervisorNode:
@@ -30,7 +33,7 @@ class TestSupervisorNode:
             "tool_results": [],
         }
         result = supervisor_node(state)  # type: ignore[arg-type]
-        assert result["next_agent"] == "rag"
+        assert result["next_agent"] in ("rag", "tool")
 
     def test_preserves_all_state_fields(self) -> None:
         state = {
@@ -64,7 +67,7 @@ class TestBuildGraph:
             "documents": [],
             "answer": "",
             "eval_report": {},
-            "next_agent": "",
+            "next_agent": "rag",
             "session_id": "test",
             "tool_results": [],
         }
@@ -81,7 +84,7 @@ class TestBuildGraph:
             "documents": [],
             "answer": "",
             "eval_report": {},
-            "next_agent": "",
+            "next_agent": "rag",
             "session_id": "test",
             "tool_results": [],
         }
