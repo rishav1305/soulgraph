@@ -32,10 +32,20 @@ def main() -> None:
         sys.exit(1)
 
     # Import here to avoid slow startup when --help is used.
+    from soulgraph.checkpoint import get_checkpointer  # noqa: PLC0415
     from soulgraph.state import AgentState  # noqa: PLC0415
     from soulgraph.supervisor import build_graph  # noqa: PLC0415
+    from soulgraph.tracing import setup_tracing  # noqa: PLC0415
 
-    graph = build_graph()
+    checkpointer = get_checkpointer(settings.redis_url)
+    graph = build_graph(checkpointer=checkpointer)
+
+    callbacks = setup_tracing()
+    config = {
+        "configurable": {"thread_id": args.session_id},
+        "callbacks": callbacks,
+    }
+
     initial_state: AgentState = {
         "question": args.question,
         "messages": [],
@@ -47,7 +57,7 @@ def main() -> None:
         "tool_results": [],
     }
 
-    result = graph.invoke(initial_state)
+    result = graph.invoke(initial_state, config=config)
 
     print(f"\nAnswer:\n{result.get('answer', '(no answer generated)')}\n")
     if result.get("eval_report"):

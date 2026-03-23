@@ -9,22 +9,27 @@ logger = logging.getLogger(__name__)
 
 
 def _connect(redis_url: str) -> Any:
-    """Verify Redis is reachable and return a RedisSaver context manager.
+    """Verify Redis is reachable and return a RedisSaver instance.
 
     Separated for clean mocking in tests.
     Raises an exception if the Redis server is unreachable.
+
+    Note: RedisSaver.from_conn_string() is a context manager — do NOT use it
+    here. Instead, ping first to detect availability, then instantiate directly
+    via RedisSaver(redis_url=...) to get a real BaseCheckpointSaver instance.
     """
     import redis as redis_lib
     from langgraph.checkpoint.redis import RedisSaver
 
-    # Probe the connection before returning the saver — fail fast if Redis is down.
-    client = redis_lib.Redis.from_url(redis_url, socket_connect_timeout=2)
+    # Probe the connection — fail fast if Redis is down.
+    client = redis_lib.Redis.from_url(redis_url, socket_connect_timeout=1)
     try:
         client.ping()
     finally:
         client.close()
 
-    return RedisSaver.from_conn_string(redis_url)
+    # Instantiate directly — NOT via from_conn_string() which is a @contextmanager.
+    return RedisSaver(redis_url=redis_url)
 
 
 def get_checkpointer(redis_url: str) -> Any | None:
