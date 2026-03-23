@@ -55,6 +55,7 @@ dev = [
 
 [project.scripts]
 soulgraph = "soulgraph.cli:main"
+soulgraph-api = "soulgraph.api:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
