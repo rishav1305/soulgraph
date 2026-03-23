@@ -1,4 +1,5 @@
 """CLI entrypoint for SoulGraph."""
+
 from __future__ import annotations
 
 import argparse
@@ -31,11 +32,11 @@ def main() -> None:
         sys.exit(1)
 
     # Import here to avoid slow startup when --help is used.
-    from soulgraph.supervisor import build_graph  # noqa: PLC0415
     from soulgraph.state import AgentState  # noqa: PLC0415
+    from soulgraph.supervisor import build_graph  # noqa: PLC0415
 
     graph = build_graph()
-    initial_state: AgentState = {  # type: ignore[typeddict-item]
+    initial_state: AgentState = {
         "question": args.question,
         "messages": [],
         "documents": [],

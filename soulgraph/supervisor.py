@@ -1,8 +1,9 @@
 """LangGraph Supervisor — routes queries to specialist agents."""
+
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
 
@@ -40,7 +41,7 @@ def supervisor_node(state: AgentState) -> AgentState:
     intent = classify_intent(state["question"])
     next_agent = INTENT_ROUTES.get(intent, INTENT_ROUTES["default"])
     logger.info("Supervisor: intent=%s → next=%s", intent, next_agent)
-    return {**state, "next_agent": next_agent}  # type: ignore[return-value]
+    return cast(AgentState, dict(state) | {"next_agent": next_agent})
 
 
 def route_from_supervisor(state: AgentState) -> str:

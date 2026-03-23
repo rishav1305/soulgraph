@@ -1,7 +1,6 @@
 """Tests for the LangGraph supervisor."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from soulgraph.supervisor import build_graph, classify_intent, supervisor_node
 from tests.conftest import MockRAGAgent

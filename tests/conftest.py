@@ -1,4 +1,5 @@
 """Shared test fixtures."""
+
 from __future__ import annotations
 
 import pytest
@@ -12,10 +13,14 @@ class MockRAGAgent(RAGAgent):
 
     def __init__(self, fixed_docs: list[str] | None = None) -> None:
         super().__init__()
-        self.fixed_docs = fixed_docs if fixed_docs is not None else [
-            "Retrieval-Augmented Generation (RAG) combines retrieval with generation.",
-            "RAG improves factual accuracy by grounding responses in retrieved documents.",
-        ]
+        self.fixed_docs = (
+            fixed_docs
+            if fixed_docs is not None
+            else [
+                "Retrieval-Augmented Generation (RAG) combines retrieval with generation.",
+                "RAG improves factual accuracy by grounding responses in retrieved documents.",
+            ]
+        )
 
     def retrieve(self, query: str, n_results: int = 5) -> list[str]:  # noqa: ARG002
         return self.fixed_docs[: min(n_results, len(self.fixed_docs))]

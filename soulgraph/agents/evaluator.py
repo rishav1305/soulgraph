@@ -1,8 +1,11 @@
 """Evaluator Agent — RAGAS metrics + structured JSON report."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
+
+from soulgraph.state import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +64,7 @@ class EvaluatorAgent:
         )
         return report
 
-    def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, state: AgentState) -> dict[str, Any]:
         """Process state: evaluate answer quality and update state."""
         question = state.get("question", "")
         answer = state.get("answer", "")

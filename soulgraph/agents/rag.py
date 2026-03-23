@@ -1,8 +1,11 @@
 """RAG Agent — ChromaDB retrieval + answer generation."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
+
+from soulgraph.state import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,7 @@ class RAGAgent:
     def _get_collection(self) -> Any:
         """Lazily initialise ChromaDB collection."""
         if self._collection is None:
-            import chromadb  # type: ignore[import]
+            import chromadb
 
             client = chromadb.HttpClient(host=self.chroma_host, port=self.chroma_port)
             self._collection = client.get_or_create_collection("soulgraph_rag")
@@ -54,7 +57,7 @@ class RAGAgent:
             logger.warning("ChromaDB retrieval failed: %s — returning empty documents", exc)
             return []
 
-    def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, state: AgentState) -> dict[str, Any]:
         """Process state: retrieve documents and update state.
 
         This is the LangGraph node function signature.

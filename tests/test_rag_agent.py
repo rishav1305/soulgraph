@@ -1,4 +1,5 @@
 """Tests for the RAG agent."""
+
 from __future__ import annotations
 
 from tests.conftest import MockRAGAgent

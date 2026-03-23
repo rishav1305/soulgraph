@@ -1,7 +1,6 @@
 """Tests for the Evaluator agent."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from soulgraph.agents.evaluator import RAGAS_METRICS, EvaluatorAgent
 
