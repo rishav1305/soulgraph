@@ -51,6 +51,21 @@ Building production AI agent systems today requires stitching together 5+ tools 
 
 ---
 
+## New in Phase 2
+
+| Feature | How to use |
+|---------|-----------|
+| **Redis Checkpoint** | Same `--session-id` across runs resumes the conversation |
+| **LiteLLM Router** | Set `LITELLM_REASONING_MODEL=gpt-4o` to switch models without code changes |
+| **REST API** | `POST http://localhost:8080/query` |
+| **WebSocket Streaming** | `ws://localhost:8080/ws/query` — tokens stream in real time |
+| **LangSmith Tracing** | Set `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` |
+| **LangFuse Tracing** | `docker compose up -d langfuse` then visit http://localhost:3100 |
+| **Tool Agent** | Routes `calculate X * Y` queries to safe AST evaluator |
+| **Real RAGAS** | Evaluation now computes live faithfulness, relevance, precision, recall |
+
+---
+
 ## Quick Start
 
 **Prerequisites:** Docker, Python 3.11+, Anthropic API key
@@ -67,23 +82,15 @@ docker compose up -d
 cp .env.example .env          # Add your ANTHROPIC_API_KEY
 pip install -e ".[dev]"
 
-# 4. Ask a question
-soulgraph "What is retrieval-augmented generation?"
-```
+# 4. Ask a question (CLI)
+soulgraph "What is retrieval-augmented generation?" --session-id my-session
 
-**Expected output:**
-```json
-Answer:
-Retrieval-Augmented Generation (RAG) combines retrieval with generation...
-
-Evaluation Report:
-{
-  "question": "What is retrieval-augmented generation?",
-  "num_documents": 5,
-  "scores": { "faithfulness": null, "answer_relevancy": null, ... },
-  "threshold": 0.7,
-  "note": "Phase 1 stub — real RAGAS evaluation wired in Phase 2"
-}
+# 5. Or use the REST API
+soulgraph-api &
+curl -s -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "calculate 6 * 7", "session_id": "demo"}'
+# {"answer": "Tool result (calculator): 42", ...}
 ```
 
 ---
@@ -123,7 +130,7 @@ make infra-down  # Stop services
 |-------|-------|--------|
 | **Phase 0** | Repo + Docker + Scaffold | ✅ Done |
 | **Phase 1** | Supervisor + RAG Agent + Evaluator | ✅ Done (Mar 23) |
-| **Phase 2** | Redis state bus + Model Router | Planned (Apr 3) |
+| **Phase 2** | Redis state bus + Model Router + FastAPI + Tracing | ✅ Done (Mar 25) |
 | **Phase 3** | Full POC + Eval pipeline + Notebook | Planned (Apr 11) |
 | **Ongoing** | One domain agent per week | Continuous |
 
