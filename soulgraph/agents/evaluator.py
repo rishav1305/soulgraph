@@ -46,23 +46,56 @@ class EvaluatorAgent:
         Returns:
             Evaluation report with scores, pass/fail status, and metadata.
         """
-        # Phase 1 stub: return a structured placeholder report.
-        # Phase 2 will wire real RAGAS evaluation.
-        report: dict[str, Any] = {
-            "question": question,
-            "answer_length": len(answer),
-            "num_documents": len(documents),
-            "scores": {metric: None for metric in RAGAS_METRICS},
-            "passed": None,
-            "threshold": self.threshold,
-            "note": "Phase 1 stub — real RAGAS evaluation wired in Phase 2",
-        }
-        logger.info(
-            "Eval report: %d docs, answer %d chars",
-            len(documents),
-            len(answer),
-        )
-        return report
+        try:
+            from datasets import Dataset
+            from ragas import evaluate as ragas_evaluate
+            from ragas.metrics import (
+                answer_relevancy,
+                context_precision,
+                context_recall,
+                faithfulness,
+            )
+
+            ds = Dataset.from_dict(
+                {
+                    "question": [question],
+                    "answer": [answer],
+                    "contexts": [documents if documents else ["(no context)"]],
+                    "ground_truth": [answer],
+                }
+            )
+            result = ragas_evaluate(
+                ds,
+                metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
+            )
+            scores = result.to_pandas().iloc[0].to_dict()  # type: ignore[union-attr]
+            metric_scores = {m: scores.get(m) for m in RAGAS_METRICS}
+            passed = all(v is None or v >= self.threshold for v in metric_scores.values())
+            logger.info(
+                "RAGAS eval: %d docs, answer %d chars, passed=%s",
+                len(documents),
+                len(answer),
+                passed,
+            )
+            return {
+                "question": question,
+                "answer_length": len(answer),
+                "num_documents": len(documents),
+                "scores": metric_scores,
+                "passed": passed,
+                "threshold": self.threshold,
+            }
+        except Exception as exc:
+            logger.warning("RAGAS evaluation failed: %s — returning placeholder", exc)
+            return {
+                "question": question,
+                "answer_length": len(answer),
+                "num_documents": len(documents),
+                "scores": {metric: None for metric in RAGAS_METRICS},
+                "passed": None,
+                "threshold": self.threshold,
+                "error": str(exc),
+            }
 
     def __call__(self, state: AgentState) -> dict[str, Any]:
         """Process state: evaluate answer quality and update state."""
