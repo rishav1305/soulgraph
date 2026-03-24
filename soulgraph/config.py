@@ -48,6 +48,21 @@ class Settings:
         default_factory=lambda: os.environ.get("LANGFUSE_SECRET_KEY", "")
     )
 
+    # Phase 3 — vLLM backend (T5)
+    # When vllm_base_url is set, the ModelRouter uses vLLM as a self-hosted
+    # inference backend via LiteLLM's openai-compatible endpoint.
+    # LiteLLM model string: "openai/<model>" with api_base=vllm_base_url.
+    #
+    # Example .env:
+    #   VLLM_BASE_URL=http://vllm:8000/v1
+    #   VLLM_MODEL=mistralai/Mistral-7B-Instruct-v0.3
+    #
+    # Leave VLLM_BASE_URL empty (default) to disable vLLM and use cloud APIs.
+    vllm_base_url: str = field(default_factory=lambda: os.environ.get("VLLM_BASE_URL", ""))
+    vllm_model: str = field(
+        default_factory=lambda: os.environ.get("VLLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.3")
+    )
+
     # Phase 2 — API
     api_host: str = field(default_factory=lambda: os.environ.get("SOULGRAPH_API_HOST", "0.0.0.0"))
     api_port: int = field(default_factory=lambda: int(os.environ.get("SOULGRAPH_API_PORT", "8080")))
