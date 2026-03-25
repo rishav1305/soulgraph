@@ -177,7 +177,7 @@ Results are returned as structured JSON alongside every answer — making qualit
 ## Development
 
 ```bash
-make ci          # Full CI: lint + type check + test (53 tests, 79% coverage)
+make ci          # Full CI: lint + type check + test (91 tests, 81% coverage)
 make test        # Run pytest
 make lint        # Ruff lint + format check
 make type        # Mypy type check
