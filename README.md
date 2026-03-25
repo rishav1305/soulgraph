@@ -194,9 +194,12 @@ make infra-down  # Stop services
 | **Phase 0** | Repo scaffold + Docker + CI | ✅ Done |
 | **Phase 1** | Supervisor + RAG Agent + Evaluator | ✅ Done (Mar 23) |
 | **Phase 2** | Redis state bus + LiteLLM router + FastAPI + LangFuse + vLLM | ✅ Done (Mar 25) |
-| **Phase 3** | Eval pipeline + feedback loops + Jupyter notebook | 🔜 Planned (Apr 11) |
+| **Phase 3 Wave 1** | EvalReport (JSON/HTML), vLLM backend, acceptance criteria | ✅ Done (Mar 25) |
+| **Phase 3 Wave 3** | Agent fine-tuning — eval feedback loop, rag_k + model routing | ✅ Done (Mar 25) |
+| **Phase 3 Wave 2** | NeMo Guardrails + pgvector hybrid retrieval | 🔜 Planned (Mar 29) |
+| **Phase 3 Wave 4** | Colab notebook + end-to-end walkthrough | 🔜 Planned (Apr 3) |
 
-Phase 3 will add: continuous eval tracking across sessions, a dataset builder for fine-tuning, and an end-to-end Jupyter walkthrough of the full system.
+**Agent fine-tuning (Wave 3):** After each query, RAGAS scores feed back into AgentTuner. Low faithfulness triggers rag_k increase. Low relevancy triggers reasoning model. All adjustments are logged with reasoning. Run \ to inspect current parameters and history.
 
 ---
 
