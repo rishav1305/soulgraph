@@ -167,3 +167,137 @@ class TestCriterionThree:
 
         routes = {r.path for r in app.routes}  # type: ignore[attr-defined]
         assert "/health" in routes, f"Expected '/health' endpoint, found: {routes}"
+
+
+# ---------------------------------------------------------------------------
+# Criterion #7 — Agent fine-tuning demonstrates parameter adjustment
+# ---------------------------------------------------------------------------
+
+
+class TestCriterionSeven:
+    """Agent fine-tuning (Phase 3 Wave 3):
+
+    The system must demonstrate measurable parameter adjustment based on
+    eval feedback — not LLM fine-tuning (no weight updates), but agent
+    fine-tuning: adjusting rag_k, model routing, and thresholds based on
+    observed RAGAS score patterns.
+    """
+
+    def _low_faithfulness_report(self) -> dict:
+        return {
+            "scores": {
+                "faithfulness": 0.5,
+                "answer_relevancy": 0.9,
+                "context_precision": 0.85,
+                "context_recall": 0.82,
+            },
+            "passed": False,
+        }
+
+    def _high_quality_report(self) -> dict:
+        return {
+            "scores": {
+                "faithfulness": 0.95,
+                "answer_relevancy": 0.92,
+                "context_precision": 0.90,
+                "context_recall": 0.88,
+            },
+            "passed": True,
+        }
+
+    def test_tuner_adjusts_rag_k_after_repeated_low_faithfulness(self) -> None:
+        """Criterion #7a: rag_k increases after 3+ consecutive faithfulness failures."""
+        from soulgraph.tune_params import DEFAULT_RAG_K
+        from soulgraph.tuner import AgentTuner
+
+        tuner = AgentTuner()
+        assert tuner.get_params().rag_k == DEFAULT_RAG_K, "Initial rag_k must be default"
+
+        for _ in range(3):
+            tuner.observe(self._low_faithfulness_report())
+
+        assert tuner.get_params().rag_k > DEFAULT_RAG_K, (
+            f"rag_k should increase after 3 faithfulness failures. "
+            f"Expected > {DEFAULT_RAG_K}, got {tuner.get_params().rag_k}"
+        )
+
+    def test_tuner_exposes_adjustment_audit_trail(self) -> None:
+        """Criterion #7b: Adjustments are logged with reasoning for accountability."""
+        from soulgraph.tuner import AgentTuner
+
+        tuner = AgentTuner()
+        for _ in range(3):
+            tuner.observe(self._low_faithfulness_report())
+
+        status = tuner.status()
+        assert len(status["adjustments"]) > 0, "Must have at least one logged adjustment"
+        first_adj = status["adjustments"][0]
+        assert "rag_k" in first_adj, "Adjustment log must reference the adjusted parameter"
+
+    def test_tuner_integrates_with_evaluator_agent(self) -> None:
+        """Criterion #7c: EvaluatorAgent calls tuner.observe() automatically."""
+        from unittest.mock import patch
+
+        from soulgraph.agents.evaluator import EvaluatorAgent
+        from soulgraph.tuner import AgentTuner, reset_tuner
+
+        reset_tuner()
+        test_tuner = AgentTuner()
+
+        with patch("soulgraph.agents.evaluator.get_tuner", return_value=test_tuner):
+            evaluator = EvaluatorAgent(threshold=0.7)
+            state = {
+                "question": "What is RAG?",
+                "messages": [],
+                "documents": ["doc1"],
+                "answer": "RAG is retrieval-augmented generation.",
+                "eval_report": {},
+                "next_agent": "evaluator",
+                "session_id": "crit7",
+                "tool_results": [],
+            }
+            evaluator(state)
+
+        assert len(test_tuner.get_history()) == 1, (
+            "EvaluatorAgent must call tuner.observe() — history should have 1 entry"
+        )
+
+    def test_tuner_exposes_status_via_api(self) -> None:
+        """Criterion #7d: /tune/status API endpoint returns tuning state."""
+        from fastapi.testclient import TestClient
+
+        from soulgraph.api import app
+
+        client = TestClient(app)
+        resp = client.get("/tune/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "params" in data
+        assert "rag_k" in data["params"]
+
+    def test_tuner_reset_restores_defaults(self) -> None:
+        """Criterion #7e: /tune/reset restores default parameters after tuning."""
+        from fastapi.testclient import TestClient
+
+        from soulgraph.api import app
+        from soulgraph.tune_params import DEFAULT_RAG_K
+        from soulgraph.tuner import get_tuner, reset_tuner
+
+        reset_tuner()
+
+        # Trigger a tuning adjustment
+        tuner = get_tuner()
+        for _ in range(3):
+            tuner.observe({
+                "scores": {"faithfulness": 0.4, "answer_relevancy": 0.9, "context_precision": 0.85, "context_recall": 0.82},
+                "passed": False
+            })
+        assert tuner.get_params().rag_k > DEFAULT_RAG_K
+
+        # Reset via API
+        client = TestClient(app)
+        resp = client.post("/tune/reset")
+        assert resp.status_code == 200
+        assert resp.json()["params"]["rag_k"] == DEFAULT_RAG_K
+
+        reset_tuner()

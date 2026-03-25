@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from soulgraph.state import AgentState
+from soulgraph.tuner import get_tuner
 
 logger = logging.getLogger(__name__)
 
@@ -63,5 +64,7 @@ class RAGAgent:
         This is the LangGraph node function signature.
         """
         question = state.get("question", "")
-        documents = self.retrieve(question)
+        # Agent fine-tuning: use tuner-adjusted rag_k for retrieval count.
+        rag_k = get_tuner().get_params().rag_k
+        documents = self.retrieve(question, n_results=rag_k)
         return {"documents": documents, "next_agent": "evaluator"}

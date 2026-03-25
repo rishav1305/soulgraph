@@ -65,5 +65,49 @@ def main() -> None:
         print(json.dumps(result["eval_report"], indent=2))
 
 
+def tune_main() -> None:
+    """CLI entrypoint for soulgraph-tune — agent fine-tuning inspection."""
+    parser = argparse.ArgumentParser(
+        prog="soulgraph-tune",
+        description="Inspect and reset agent fine-tuning parameters.",
+    )
+    parser.add_argument(
+        "action",
+        choices=["status", "reset"],
+        help="status: show current params + eval history. reset: restore defaults.",
+    )
+    args = parser.parse_args()
+
+    from soulgraph.tuner import get_tuner  # noqa: PLC0415
+    tuner = get_tuner()
+
+    if args.action == "status":
+        status = tuner.status()
+        print("\nAgent Fine-Tuning Status")
+        print("========================")
+        print("\nCurrent Parameters:")
+        for k, v in status["params"].items():
+            print(f"  {k}: {v}")
+        history = status["history"]
+        print(f"\nEval History (last {len(history)} evals):")
+        for i, h in enumerate(history, 1):
+            faith = h.get("faithfulness", "N/A")
+            relev = h.get("answer_relevancy", "N/A")
+            passed = "PASS" if h.get("passed") else "FAIL"
+            print(f"  #{i:2d}  faithfulness={faith}  relevancy={relev}  {passed}")
+        adjustments = status["adjustments"]
+        if adjustments:
+            print("\nAuto-Adjustments Made:")
+            for adj in adjustments:
+                print(f"  {adj}")
+        else:
+            print("\nNo adjustments made yet.")
+    elif args.action == "reset":
+        tuner.reset()
+        print("AgentTuner reset to defaults.")
+        for k, v in tuner.get_params().to_dict().items():
+            print(f"  {k}: {v}")
+
+
 if __name__ == "__main__":
     main()

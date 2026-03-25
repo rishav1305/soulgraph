@@ -11,6 +11,7 @@ from soulgraph.agents.evaluator import EvaluatorAgent
 from soulgraph.agents.rag import RAGAgent
 from soulgraph.router import ModelRouter, TaskType, router_from_settings
 from soulgraph.state import AgentState
+from soulgraph.tuner import get_tuner
 
 if TYPE_CHECKING:
     pass
@@ -77,7 +78,24 @@ def classify_intent(question: str, router: ModelRouter | None = None) -> str:
 
 def supervisor_node(state: AgentState) -> AgentState:
     """Supervisor node: classify intent and set next_agent."""
-    intent = classify_intent(state["question"])
+    # Agent fine-tuning: pass router to classify_intent so prefer_reasoning_model
+    # adjustments are respected (routing to a higher-tier model when needed).
+    tuner_params = get_tuner().get_params()
+    if tuner_params.prefer_reasoning_model:
+        from soulgraph.router import ModelRouter, TaskType, router_from_settings
+        base = _get_router()
+        # Build a one-shot router that forces the reasoning model for this query.
+        fast_model = base.get_model(TaskType.REASONING)  # use reasoning for both tiers
+        routing_router = ModelRouter(
+            reasoning_model=fast_model,
+            fast_model=fast_model,
+            vllm_base_url=base._vllm_base_url,
+            vllm_model=base._vllm_model,
+        )
+        intent = classify_intent(state["question"], router=routing_router)
+        logger.info("Supervisor: prefer_reasoning_model=True — using reasoning router")
+    else:
+        intent = classify_intent(state["question"])
     next_agent = INTENT_ROUTES.get(intent, INTENT_ROUTES["default"])
     logger.info("Supervisor: intent=%s → next=%s", intent, next_agent)
     return cast(AgentState, dict(state) | {"next_agent": next_agent})

@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from soulgraph.state import AgentState
+from soulgraph.tuner import get_tuner
 
 logger = logging.getLogger(__name__)
 
@@ -103,4 +104,11 @@ class EvaluatorAgent:
         answer = state.get("answer", "")
         documents = state.get("documents", [])
         eval_report = self.evaluate(question, answer, documents)
+        # Agent fine-tuning: feed eval results back to the tuner so it
+        # can adjust parameters (rag_k, model tier) for future queries.
+        try:
+            get_tuner().observe(eval_report)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("AgentTuner.observe failed: %s", exc)
         return {"eval_report": eval_report, "next_agent": "END"}

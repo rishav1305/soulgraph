@@ -164,3 +164,22 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------------------
+# Agent fine-tuning endpoints (Phase 3 Wave 3)
+# ---------------------------------------------------------------------------
+
+@app.get("/tune/status")
+async def tune_status() -> JSONResponse:
+    """Return current tuning parameters and eval history."""
+    from soulgraph.tuner import get_tuner
+    return JSONResponse(content=get_tuner().status())
+
+
+@app.post("/tune/reset")
+async def tune_reset() -> JSONResponse:
+    """Reset all tuning parameters and history to defaults."""
+    from soulgraph.tuner import get_tuner
+    get_tuner().reset()
+    return JSONResponse(content={"status": "reset", "params": get_tuner().get_params().to_dict()})
