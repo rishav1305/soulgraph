@@ -3,66 +3,104 @@
 [![CI](https://github.com/rishav1305/soulgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/rishav1305/soulgraph/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2+-green.svg)](https://langchain-ai.github.io/langgraph/)
-[![Redis](https://img.shields.io/badge/Redis-7-red.svg)](https://redis.io)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-0.5+-purple.svg)](https://trychroma.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **A batteries-included LangGraph starter service. Give it documents and a question — it gets you a grounded, multi-agent answer, plus tooling to evaluate and improve the models.**
+**A production-grade multi-agent AI system built on LangGraph.** Feed it documents, ask a question — it retrieves, answers, and *automatically evaluates its own output quality* using RAGAS metrics. Every response is traceable, every answer is scored.
+
+Built to explore the full stack of production AI engineering: orchestration, RAG, evaluation, multi-model routing, state persistence, and observability — wired together in one coherent system.
+
+---
+
+## What It Does
+
+```
+$ soulgraph "What is retrieval-augmented generation?" --session-id demo
+
+✓ RAG Agent    → Retrieved 4 relevant documents (ChromaDB)
+✓ Tool Agent   → No tool calls required
+✓ Evaluator    → faithfulness: 0.91  relevancy: 0.88  precision: 0.85  recall: 0.82
+
+Answer: Retrieval-Augmented Generation (RAG) combines a retrieval system
+with a language model. The retriever fetches relevant documents from a
+knowledge base; the model generates answers grounded in those documents
+rather than relying on parametric memory alone — reducing hallucination
+and enabling domain-specific knowledge without fine-tuning.
+
+Eval: PASS (avg 0.87) | Session resumed: demo | Tokens: 312
+```
+
+```
+# REST API
+curl -s -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "calculate 6 * 7", "session_id": "demo"}'
+
+{"answer": "Tool result (calculator): 42", "eval": {"score": 1.0, "pass": true}}
+```
 
 ---
 
 ## Architecture
 
 ```
-User Query
-    │
-    ▼
-┌─────────────────────────────────────────────┐
-│             LangGraph Supervisor             │
-│       StateGraph with intent routing         │
-└────────────────┬────────────────────────────┘
-                 │
-        ┌────────┴──────────────────────────┐
-        │                                   │
-        ▼                                   ▼
-┌──────────────────┐              ┌──────────────────────┐
-│    RAG Agent     │              │   Evaluator Agent    │
-│  ChromaDB +      │──response──▶ │  RAGAS metrics +     │
-│  HotpotQA        │              │  structured report   │
-└──────────────────┘              └──────────────────────┘
-        │
-        ▼
-  Redis State Bus
-  (pub/sub + checkpoints)
+                          ┌──────────────────────────────────────────────┐
+                          │           LangGraph Supervisor               │
+                          │   StateGraph · Intent Routing · State Bus    │
+                          └──────────┬───────────────────────────────────┘
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │                      │                      │
+              ▼                      ▼                      ▼
+   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+   │    RAG Agent    │    │   Tool Agent    │    │ Evaluator Agent │
+   │  ChromaDB +     │    │  AST calculator │    │ RAGAS metrics   │
+   │  HotpotQA data  │    │  (safe eval)    │    │ JSON report     │
+   └────────┬────────┘    └────────┬────────┘    └────────┬────────┘
+            │                      │                      │
+            └──────────────────────┴──────────────────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+   │  Redis State Bus │  │  LiteLLM Router  │  │  Observability   │
+   │  pub/sub +       │  │  claude-3 · gpt  │  │  LangSmith +     │
+   │  checkpoints     │  │  vLLM backend    │  │  LangFuse UI     │
+   └──────────────────┘  └──────────────────┘  └──────────────────┘
+              │
+              ▼
+   ┌──────────────────┐
+   │   FastAPI Server │
+   │  REST + WebSocket│
+   │  streaming       │
+   └──────────────────┘
 ```
 
-**Supervisor** routes queries to specialist agents via LangGraph `StateGraph`. Phase 1 uses hardcoded routing; Phase 2 adds a Model Router with intent classification.
+**Supervisor** routes queries to specialist agents via LangGraph `StateGraph`. Intent classification selects RAG (knowledge questions) or Tool Agent (compute tasks). State is typed, immutable, and persisted in Redis between turns.
 
-**RAG Agent** retrieves relevant documents from ChromaDB (seeded with HotpotQA for multi-hop reasoning) and generates grounded answers.
+**RAG Agent** retrieves from ChromaDB (seeded with HotpotQA for multi-hop reasoning), generates grounded answers via Claude, and passes context to the Evaluator.
 
-**Evaluator Agent** scores output quality using RAGAS metrics (faithfulness, answer relevancy, context precision, context recall) and emits a structured JSON report.
+**Evaluator Agent** runs four RAGAS metrics (faithfulness, answer_relevancy, context_precision, context_recall) and emits structured JSON quality reports. Every query is scored.
 
-**Redis** provides shared state bus for agent coordination and checkpoint persistence.
+**LiteLLM Router** selects model by task type (reasoning vs. fast) and supports vLLM self-hosted inference as a drop-in backend — swap cloud API for local GPU with one env var.
 
----
-
-## Why This Exists
-
-Building production AI agent systems today requires stitching together 5+ tools — orchestration, RAG, evaluation, fine-tuning, and state management — that don't share state or speak the same interface. SoulGraph unifies all four into one cohesive system with shared state via Redis and ChromaDB, making it deployable from a single `docker compose up`.
+**Redis** provides shared agent state bus (pub/sub) and LangGraph checkpoint persistence. Same `--session-id` resumes any conversation exactly where it left off.
 
 ---
 
-## New in Phase 2
+## Tech Stack
 
-| Feature | How to use |
-|---------|-----------|
-| **Redis Checkpoint** | Same `--session-id` across runs resumes the conversation |
-| **LiteLLM Router** | Set `LITELLM_REASONING_MODEL=gpt-4o` to switch models without code changes |
-| **REST API** | `POST http://localhost:8080/query` |
-| **WebSocket Streaming** | `ws://localhost:8080/ws/query` — tokens stream in real time |
-| **LangSmith Tracing** | Set `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` |
-| **LangFuse Tracing** | `docker compose up -d langfuse` then visit http://localhost:3100 |
-| **Tool Agent** | Routes `calculate X * Y` queries to safe AST evaluator |
-| **Real RAGAS** | Evaluation now computes live faithfulness, relevance, precision, recall |
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **Orchestration** | LangGraph `StateGraph` | Type-safe, cyclical agent graphs; clean state passing between agents |
+| **LLM Abstraction** | LiteLLM | Model-agnostic routing; swap Claude ↔ GPT-4 ↔ vLLM without code changes |
+| **Vector Store** | ChromaDB | Embedded, no infra overhead; persistence via Docker volume |
+| **State Bus** | Redis pub/sub + `RedisSaver` | Cross-agent coordination + LangGraph checkpoint persistence in one service |
+| **Evaluation** | RAGAS | Industry-standard RAG eval: faithfulness, relevancy, precision, recall |
+| **Tracing** | LangSmith + LangFuse | Dual tracing support; LangFuse runs locally via Docker |
+| **API** | FastAPI + WebSocket | Async REST + real-time token streaming |
+| **Inference backend** | vLLM (optional) | Self-hosted GPU inference via LiteLLM's OpenAI-compatible shim |
+| **CI** | GitHub Actions | Ruff + Mypy + Pytest on every push; green main policy |
 
 ---
 
@@ -71,50 +109,75 @@ Building production AI agent systems today requires stitching together 5+ tools 
 **Prerequisites:** Docker, Python 3.11+, Anthropic API key
 
 ```bash
-# 1. Clone
+# Clone
 git clone https://github.com/rishav1305/soulgraph.git
 cd soulgraph
 
-# 2. Start infrastructure
+# Start infrastructure (Redis + ChromaDB)
 docker compose up -d
 
-# 3. Install
+# Install
 cp .env.example .env          # Add your ANTHROPIC_API_KEY
 pip install -e ".[dev]"
 
-# 4. Ask a question (CLI)
-soulgraph "What is retrieval-augmented generation?" --session-id my-session
+# Ask a question
+soulgraph "What is multi-hop reasoning?" --session-id my-session
 
-# 5. Or use the REST API
+# Or use the streaming REST API
 soulgraph-api &
-curl -s -X POST http://localhost:8080/query \
+curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "calculate 6 * 7", "session_id": "demo"}'
-# {"answer": "Tool result (calculator): 42", ...}
+  -d '{"question": "calculate 15 * 8", "session_id": "demo"}'
+```
+
+**Optional: LangFuse tracing UI (http://localhost:3100)**
+```bash
+docker compose --profile langfuse up -d
+# Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY in .env
+```
+
+**Optional: Switch to vLLM self-hosted inference**
+```bash
+export VLLM_BASE_URL=http://localhost:8000
+export VLLM_MODEL=meta-llama/Llama-3-8B-Instruct
+soulgraph "your question"   # routes to local GPU, no cloud API calls
 ```
 
 ---
 
-## Four Pillars
+## Evaluation Pipeline
 
-### 1. RAG Pipeline
-ChromaDB vector store seeded with HotpotQA — a multi-hop reasoning dataset. The RAG agent retrieves relevant documents and generates grounded answers, reducing hallucination through citation.
+Every query runs four RAGAS metrics:
 
-### 2. Agentic Orchestration
-LangGraph `StateGraph` supervisor coordinates specialist agents using immutable state passing. Phase 2 adds a Model Router sub-agent for dynamic intent classification and Redis pub/sub for agent coordination.
+| Metric | What It Measures |
+|--------|-----------------|
+| **Faithfulness** | Does the answer stick to the retrieved context? (hallucination detection) |
+| **Answer Relevancy** | Does the answer actually address the question? |
+| **Context Precision** | Is the retrieved context relevant to the question? |
+| **Context Recall** | Was all necessary context retrieved? |
 
-### 3. Model Evaluation
-RAGAS metrics (faithfulness, answer_relevancy, context_precision, context_recall) assess output quality after every query. The Evaluator agent returns structured JSON reports with scores, pass/fail status, and metadata for quality tracking.
+Results are returned as structured JSON alongside every answer — making quality regression visible over time:
 
-### 4. Fine-tuning Pipeline *(Phase 3)*
-Every (question, answer, eval_score) triple becomes training data. The fine-tuning pipeline collects feedback loops and prepares datasets for domain-specific model improvement.
+```json
+{
+  "answer": "...",
+  "eval": {
+    "faithfulness": 0.91,
+    "answer_relevancy": 0.88,
+    "context_precision": 0.85,
+    "context_recall": 0.82,
+    "pass": true,
+    "latency_ms": 1240
+  }
+}
+```
 
 ---
 
 ## Development
 
 ```bash
-make ci          # Lint + type check + test (matches CI)
+make ci          # Full CI: lint + type check + test (53 tests, 79% coverage)
 make test        # Run pytest
 make lint        # Ruff lint + format check
 make type        # Mypy type check
@@ -124,14 +187,19 @@ make infra-down  # Stop services
 
 ---
 
-## Contributing / Roadmap
+## Project Status
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| **Phase 0** | Repo + Docker + Scaffold | ✅ Done |
+| **Phase 0** | Repo scaffold + Docker + CI | ✅ Done |
 | **Phase 1** | Supervisor + RAG Agent + Evaluator | ✅ Done (Mar 23) |
-| **Phase 2** | Redis state bus + Model Router + FastAPI + Tracing | ✅ Done (Mar 25) |
-| **Phase 3** | Full POC + Eval pipeline + Notebook | Planned (Apr 11) |
-| **Ongoing** | One domain agent per week | Continuous |
+| **Phase 2** | Redis state bus + LiteLLM router + FastAPI + LangFuse + vLLM | ✅ Done (Mar 25) |
+| **Phase 3** | Eval pipeline + feedback loops + Jupyter notebook | 🔜 Planned (Apr 11) |
 
-PRs welcome. See [CLAUDE.md](CLAUDE.md) for conventions and development standards.
+Phase 3 will add: continuous eval tracking across sessions, a dataset builder for fine-tuning, and an end-to-end Jupyter walkthrough of the full system.
+
+---
+
+## Contributing
+
+PRs welcome. See [CLAUDE.md](CLAUDE.md) for development conventions, architecture decisions, and CI policy.
