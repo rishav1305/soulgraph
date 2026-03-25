@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from soulgraph.tune_params import DEFAULT_RAG_K, TuningParams
-from soulgraph.tuner import AgentTuner
+from soulgraph.tuner import AgentTuner, get_tuner, reset_tuner
 
 
 # ---------------------------------------------------------------------------
@@ -224,3 +224,153 @@ class TestGracefulHandling:
     def test_observe_handles_missing_scores(self) -> None:
         tuner = AgentTuner()
         tuner.observe({"passed": False})  # minimal report, should not raise
+
+    def test_apply_rules_is_noop_on_empty_history(self) -> None:
+        """_apply_rules early-return guard: empty history must not raise."""
+        tuner = AgentTuner()
+        # _history starts empty; calling _apply_rules directly should return safely.
+        tuner._apply_rules()
+        assert tuner.get_params() == TuningParams()  # nothing changed
+
+
+# ---------------------------------------------------------------------------
+# Redis persistence
+# ---------------------------------------------------------------------------
+
+class TestAgentTunerRedis:
+    """Tests for Redis-backed persistence in AgentTuner.
+
+    Uses a MagicMock to simulate Redis without requiring a live instance.
+    """
+
+    def _make_redis(self) -> "MagicMock":  # noqa: F821
+        from unittest.mock import MagicMock
+        mock = MagicMock()
+        # Simulate empty Redis on first load (no stored state).
+        mock.get.return_value = None
+        mock.lrange.return_value = []
+        return mock
+
+    def test_init_with_redis_calls_load(self) -> None:
+        """AgentTuner.__init__ calls _load_from_redis when redis_client is given."""
+        from unittest.mock import MagicMock, patch
+        mock_redis = self._make_redis()
+        with patch.object(AgentTuner, "_load_from_redis") as mock_load:
+            AgentTuner(redis_client=mock_redis)
+            mock_load.assert_called_once()
+
+    def test_observe_with_redis_calls_save(self) -> None:
+        """observe() calls _save_to_redis after applying rules."""
+        from unittest.mock import MagicMock, patch
+        mock_redis = self._make_redis()
+        tuner = AgentTuner(redis_client=mock_redis)
+        with patch.object(tuner, "_save_to_redis") as mock_save:
+            tuner.observe(_pass_report())
+            mock_save.assert_called_once()
+
+    def test_reset_with_redis_deletes_keys(self) -> None:
+        """reset() deletes all three Redis keys when redis_client is set."""
+        from soulgraph.tuner import _REDIS_KEY_ADJUSTMENTS, _REDIS_KEY_HISTORY, _REDIS_KEY_PARAMS
+        mock_redis = self._make_redis()
+        tuner = AgentTuner(redis_client=mock_redis)
+        tuner.observe(_pass_report())
+        mock_redis.reset_mock()  # clear call history from init/observe
+        tuner.reset()
+        deleted_keys = {call.args[0] for call in mock_redis.delete.call_args_list}
+        assert _REDIS_KEY_PARAMS in deleted_keys
+        assert _REDIS_KEY_HISTORY in deleted_keys
+        assert _REDIS_KEY_ADJUSTMENTS in deleted_keys
+
+    def test_load_from_redis_restores_params(self) -> None:
+        """_load_from_redis restores TuningParams from serialised Redis data."""
+        import json
+        from soulgraph.tuner import _REDIS_KEY_HISTORY, _REDIS_KEY_PARAMS, _REDIS_KEY_ADJUSTMENTS
+        mock_redis = self._make_redis()
+        stored_params = TuningParams(rag_k=12, prefer_reasoning_model=True)
+        mock_redis.get.return_value = json.dumps(stored_params.to_dict()).encode()
+        adjustment_msg = "rag_k: 4 \N{RIGHTWARDS ARROW} 12  [3 consecutive faithfulness < 0.7]"
+        mock_redis.lrange.side_effect = lambda key, *_: (
+            [json.dumps({"faithfulness": 0.9, "passed": True}).encode()]
+            if key == _REDIS_KEY_HISTORY
+            else [adjustment_msg.encode()]
+            if key == _REDIS_KEY_ADJUSTMENTS
+            else []
+        )
+        tuner = AgentTuner(redis_client=mock_redis)
+        assert tuner.get_params().rag_k == 12
+        assert tuner.get_params().prefer_reasoning_model is True
+        assert len(tuner.get_history()) == 1
+        assert len(tuner.status()["adjustments"]) == 1
+
+    def test_load_from_redis_handles_error_gracefully(self) -> None:
+        """_load_from_redis swallows Redis errors and falls back to defaults."""
+        mock_redis = self._make_redis()
+        mock_redis.get.side_effect = ConnectionError("Redis unavailable")
+        # Should not raise — graceful degradation to in-memory defaults.
+        tuner = AgentTuner(redis_client=mock_redis)
+        assert tuner.get_params() == TuningParams()
+
+    def test_save_to_redis_persists_state(self) -> None:
+        """_save_to_redis writes params, history, and adjustments to Redis."""
+        import json
+        from soulgraph.tuner import _REDIS_KEY_PARAMS, _REDIS_KEY_HISTORY
+        mock_redis = self._make_redis()
+        tuner = AgentTuner(redis_client=mock_redis)
+        tuner.observe(_pass_report())
+        # Verify set was called with the params key.
+        set_keys = {call.args[0] for call in mock_redis.set.call_args_list}
+        assert _REDIS_KEY_PARAMS in set_keys
+        # Verify rpush was called for history.
+        rpush_keys = {call.args[0] for call in mock_redis.rpush.call_args_list}
+        assert _REDIS_KEY_HISTORY in rpush_keys
+
+    def test_save_to_redis_handles_error_gracefully(self) -> None:
+        """_save_to_redis swallows Redis errors without crashing observe()."""
+        mock_redis = self._make_redis()
+        mock_redis.set.side_effect = ConnectionError("Redis write failed")
+        tuner = AgentTuner(redis_client=mock_redis)
+        # observe() must not raise even if save fails.
+        tuner.observe(_pass_report())
+        assert len(tuner.get_history()) == 1  # in-memory state unaffected
+
+    def test_save_to_redis_persists_adjustments(self) -> None:
+        """_save_to_redis pushes adjustment log entries to Redis."""
+        from soulgraph.tuner import _REDIS_KEY_ADJUSTMENTS
+        mock_redis = self._make_redis()
+        tuner = AgentTuner(redis_client=mock_redis)
+        # Trigger a tuning rule so _adjustments is non-empty.
+        for _ in range(3):
+            tuner.observe(_fail_faithfulness())
+        assert len(tuner.status()["adjustments"]) > 0
+        # Verify adjustments were pushed to Redis.
+        rpush_keys = [call.args[0] for call in mock_redis.rpush.call_args_list]
+        assert _REDIS_KEY_ADJUSTMENTS in rpush_keys
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton (get_tuner / reset_tuner)
+# ---------------------------------------------------------------------------
+
+class TestTunerSingleton:
+    def setup_method(self) -> None:
+        """Reset singleton state before each test."""
+        reset_tuner()
+
+    def teardown_method(self) -> None:
+        """Clean up singleton after each test."""
+        reset_tuner()
+
+    def test_get_tuner_returns_same_instance(self) -> None:
+        """get_tuner() returns the same singleton on repeated calls."""
+        t1 = get_tuner()
+        t2 = get_tuner()
+        assert t1 is t2
+
+    def test_reset_tuner_creates_fresh_instance(self) -> None:
+        """reset_tuner() clears the singleton so next get_tuner() is fresh."""
+        t1 = get_tuner()
+        t1.observe(_pass_report())
+        reset_tuner()
+        t2 = get_tuner()
+        assert t1 is not t2
+        assert len(t2.get_history()) == 0
