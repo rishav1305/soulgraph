@@ -5,9 +5,27 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-0.2+-green.svg)](https://langchain-ai.github.io/langgraph/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**A production-grade multi-agent AI system built on LangGraph.** Feed it documents, ask a question — it retrieves, answers, and *automatically evaluates its own output quality* using RAGAS metrics. Every response is traceable, every answer is scored.
+**Batteries-included LangGraph: RAG + Eval + Fine-tuning + Orchestration in one framework.**
 
-Built to explore the full stack of production AI engineering: orchestration, RAG, evaluation, multi-model routing, state persistence, and observability — wired together in one coherent system.
+Feed it documents, ask a question — it retrieves, answers, and *automatically evaluates its own output quality* using RAGAS metrics. Every response is traceable, every answer is scored.
+
+Built to demonstrate the full stack of production AI engineering: orchestration, RAG, evaluation, multi-model routing, state persistence, and observability — wired together in one coherent system.
+
+---
+
+## Why SoulGraph?
+
+Most multi-agent frameworks give you orchestration **or** evaluation. SoulGraph integrates both — plus RAG and fine-tuning — in one coherent system.
+
+| Problem | SoulGraph's Answer |
+|---------|-------------------|
+| Agents hallucinate without feedback | Every response is scored by RAGAS. Low scores trigger automatic parameter tuning. |
+| Evaluation is a separate pipeline | Evaluation is an agent in the graph — it runs on every query, not as an afterthought. |
+| Swapping models requires rewiring | LiteLLM router lets you swap Claude, GPT-4, or self-hosted vLLM with one env var. |
+| State is lost between turns | Redis checkpoint persistence resumes any session exactly where it left off. |
+| Observability bolted on after | Dual tracing (LangSmith + LangFuse) is built in from day one. |
+
+This isn't a toy demo. It's a reference architecture for how production multi-agent systems should work: **orchestrate, retrieve, generate, evaluate, tune — in a loop.**
 
 ---
 
@@ -42,6 +60,35 @@ curl -s -X POST http://localhost:8080/query \
 
 ## Architecture
 
+```mermaid
+graph TD
+    Q["User Query"] --> S["LangGraph Supervisor<br/>StateGraph + Intent Routing"]
+
+    S --> RAG["RAG Agent<br/>ChromaDB + HotpotQA"]
+    S --> TOOL["Tool Agent<br/>AST Calculator"]
+    S --> EVAL["Evaluator Agent<br/>RAGAS Metrics"]
+
+    RAG --> BUS["Redis State Bus<br/>pub/sub + checkpoints"]
+    TOOL --> BUS
+    EVAL --> BUS
+
+    BUS --> ROUTER["LiteLLM Router<br/>Claude / GPT / vLLM"]
+    BUS --> OBS["Observability<br/>LangSmith + LangFuse"]
+    BUS --> API["FastAPI Server<br/>REST + WebSocket Streaming"]
+
+    EVAL -->|"low scores"| TUNE["Agent Tuner<br/>rag_k + model routing"]
+    TUNE -->|"adjust params"| RAG
+
+    style S fill:#4a90d9,color:#fff
+    style RAG fill:#50c878,color:#fff
+    style TOOL fill:#50c878,color:#fff
+    style EVAL fill:#f4a460,color:#fff
+    style TUNE fill:#da70d6,color:#fff
+```
+
+<details>
+<summary>ASCII version (for terminals / non-GitHub viewers)</summary>
+
 ```
                           ┌──────────────────────────────────────────────┐
                           │           LangGraph Supervisor               │
@@ -75,6 +122,8 @@ curl -s -X POST http://localhost:8080/query \
    │  streaming       │
    └──────────────────┘
 ```
+
+</details>
 
 **Supervisor** routes queries to specialist agents via LangGraph `StateGraph`. Intent classification selects RAG (knowledge questions) or Tool Agent (compute tasks). State is typed, immutable, and persisted in Redis between turns.
 
@@ -199,7 +248,29 @@ make infra-down  # Stop services
 | **Phase 3 Wave 2** | NeMo Guardrails + pgvector hybrid retrieval | 🔜 Planned (Mar 29) |
 | **Phase 3 Wave 4** | Colab notebook + end-to-end walkthrough | 🔜 Planned (Apr 3) |
 
-**Agent fine-tuning (Wave 3):** After each query, RAGAS scores feed back into AgentTuner. Low faithfulness triggers rag_k increase. Low relevancy triggers reasoning model. All adjustments are logged with reasoning. Run \ to inspect current parameters and history.
+**Agent fine-tuning (Wave 3):** After each query, RAGAS scores feed back into AgentTuner. Low faithfulness triggers `rag_k` increase. Low relevancy triggers reasoning model. All adjustments are logged with reasoning.
+
+---
+
+## Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [**soul-team**](https://github.com/rishav1305/soul-team) | Multi-agent team orchestration system — 9 specialized AI agents coordinating via message passing in tmux |
+| [**soul**](https://github.com/rishav1305/soul) | AI-powered personal dashboard and portfolio — the production frontend that consumes agent outputs |
+| [**soul-bench**](https://github.com/rishav1305/soul-bench) | Benchmark suite for evaluating multi-agent system performance, latency, and quality |
+
+SoulGraph is the orchestration and evaluation engine. Soul-team is the operational layer. Soul is the interface. Together they form a complete AI engineering stack.
+
+---
+
+## Author
+
+**Rishav Chatterjee** — AI Engineer & Multi-Agent Systems Architect
+
+- Portfolio: [rishavchatterjee.com](https://rishavchatterjee.com)
+- LinkedIn: [linkedin.com/in/rishav-chatterjee](https://www.linkedin.com/in/rishav-chatterjee/)
+- GitHub: [github.com/rishav1305](https://github.com/rishav1305)
 
 ---
 
