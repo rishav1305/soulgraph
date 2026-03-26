@@ -226,7 +226,7 @@ Results are returned as structured JSON alongside every answer — making qualit
 ## Development
 
 ```bash
-make ci          # Full CI: lint + type check + test (91 tests, 81% coverage)
+make ci          # Full CI: lint + type check + test (137 tests, 91% coverage)
 make test        # Run pytest
 make lint        # Ruff lint + format check
 make type        # Mypy type check
@@ -256,9 +256,11 @@ make infra-down  # Stop services
 
 | Project | Description |
 |---------|-------------|
-| [**soul-team**](https://github.com/rishav1305/soul-team) | Multi-agent team orchestration system — 9 specialized AI agents coordinating via message passing in tmux |
-| [**soul**](https://github.com/rishav1305/soul) | AI-powered personal dashboard and portfolio — the production frontend that consumes agent outputs |
-| [**soul-bench**](https://github.com/rishav1305/soul-bench) | Benchmark suite for evaluating multi-agent system performance, latency, and quality |
+| [**soul**](https://github.com/rishav1305/soul) | Full-stack AI platform — 13 Go microservices, React frontend, 127 Claude tools |
+| [**soul-team**](https://github.com/rishav1305/soul-team) | Multi-agent runtime for Claude Code — distributed coordination across machines |
+| [**soul-bench**](https://github.com/rishav1305/soul-bench) | CARS benchmark — cost-adjusted LLM evaluation (52 models, 7 providers) |
+| [**preset-toolkit**](https://github.com/rishav1305/preset-toolkit) | Claude Code plugin for safe Preset/Superset dashboard management |
+| [**dbt-toolkit**](https://github.com/rishav1305/dbt-toolkit) | Claude Code plugin for dbt workflow automation |
 
 SoulGraph is the orchestration and evaluation engine. Soul-team is the operational layer. Soul is the interface. Together they form a complete AI engineering stack.
 
@@ -266,11 +268,12 @@ SoulGraph is the orchestration and evaluation engine. Soul-team is the operation
 
 ## Author
 
-**Rishav Chatterjee** — AI Engineer & Multi-Agent Systems Architect
+**Rishav Chatterjee** — Senior AI Architect
 
 - Portfolio: [rishavchatterjee.com](https://rishavchatterjee.com)
-- LinkedIn: [linkedin.com/in/rishav-chatterjee](https://www.linkedin.com/in/rishav-chatterjee/)
+- CARS Dashboard: [rishavchatterjee.com/cars](https://rishavchatterjee.com/cars)
 - GitHub: [github.com/rishav1305](https://github.com/rishav1305)
+- LinkedIn: [linkedin.com/in/rishavchatterjee](https://linkedin.com/in/rishavchatterjee)
 
 ---
 
