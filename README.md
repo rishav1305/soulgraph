@@ -148,6 +148,7 @@ graph TD
 | **Evaluation** | RAGAS | Industry-standard RAG eval: faithfulness, relevancy, precision, recall |
 | **Tracing** | LangSmith + LangFuse | Dual tracing support; LangFuse runs locally via Docker |
 | **API** | FastAPI + WebSocket | Async REST + real-time token streaming |
+| **Web UI** | React 19 + Vite 7 + Tailwind v4 | Real-time chat, SVG graph viz, RAGAS scorecard, tuner dashboard |
 | **Inference backend** | vLLM (optional) | Self-hosted GPU inference via LiteLLM's OpenAI-compatible shim |
 | **CI** | GitHub Actions | Ruff + Mypy + Pytest on every push; green main policy |
 
@@ -155,25 +156,56 @@ graph TD
 
 ## Quick Start
 
-**Prerequisites:** Docker, Python 3.11+, Anthropic API key
+### Full Stack (API + Web UI + Infrastructure)
+
+**Prerequisites:** Docker, Anthropic API key
 
 ```bash
 # Clone
 git clone https://github.com/rishav1305/soulgraph.git
 cd soulgraph
 
-# Start infrastructure (Redis + ChromaDB)
+# Configure
+cp .env.example .env          # Add your ANTHROPIC_API_KEY
+
+# Start everything
 docker compose up -d
 
-# Install
-cp .env.example .env          # Add your ANTHROPIC_API_KEY
+# Open the Web UI
+open http://localhost:8080
+```
+
+That's it. `docker compose up` builds the web UI, starts the Python API, and spins up Redis + ChromaDB + LangFuse. The web UI serves from the same port as the API.
+
+### Development Setup (without Docker)
+
+**Prerequisites:** Python 3.11+, Node 22+, Anthropic API key
+
+```bash
+# Backend
 pip install -e ".[dev]"
+docker compose up redis chromadb -d   # Just infrastructure
 
-# Ask a question
+# Frontend (separate terminal)
+cd web
+npm install
+npm run mock-ws &                     # Mock backend on :8080
+npm run dev                           # Vite dev server on :5173
+
+# Or run the real backend
+uvicorn soulgraph.api:app --reload    # Real API on :8080
+```
+
+### CLI Only
+
+```bash
+pip install -e .
 soulgraph "What is multi-hop reasoning?" --session-id my-session
+```
 
-# Or use the streaming REST API
-soulgraph-api &
+### REST API
+
+```bash
 curl -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
   -d '{"question": "calculate 15 * 8", "session_id": "demo"}'
@@ -181,7 +213,7 @@ curl -X POST http://localhost:8080/query \
 
 **Optional: LangFuse tracing UI (http://localhost:3100)**
 ```bash
-docker compose --profile langfuse up -d
+# LangFuse starts automatically with docker compose up
 # Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY in .env
 ```
 
@@ -223,15 +255,46 @@ Results are returned as structured JSON alongside every answer — making qualit
 
 ---
 
+## Web UI
+
+The web UI is a standalone React 19 SPA served by the same FastAPI server. It streams agent responses in real-time via WebSocket.
+
+**Features:**
+- Real-time token streaming with word-by-word display
+- SVG agent graph visualization (supervisor → rag/tool → evaluator → END)
+- RAGAS evaluation scorecard with metric bars and pass/fail badges
+- Agent tuner dashboard with sparkline history chart
+- Session management with localStorage persistence
+- Dark zinc theme with gold accent
+
+**Stack:** React 19, TypeScript 5.9, Vite 7, Tailwind CSS v4
+
+**Development:**
+```bash
+cd web
+npm install
+npm run dev          # Vite dev server on :5173 (proxies API to :8080)
+npm run mock-ws      # Mock backend with streaming (no Docker needed)
+npm run build        # Production build → dist/
+npm run typecheck    # tsc --noEmit
+npx vitest run       # Run test suite
+```
+
+---
+
 ## Development
 
 ```bash
-make ci          # Full CI: lint + type check + test (137 tests, 91% coverage)
+# Python backend
+make ci          # Full CI: lint + type check + test (91% coverage)
 make test        # Run pytest
 make lint        # Ruff lint + format check
 make type        # Mypy type check
 make infra-up    # Start Redis + ChromaDB
 make infra-down  # Stop services
+
+# Web frontend
+cd web && npm run build && npm run typecheck && npx vitest run
 ```
 
 ---
@@ -245,10 +308,13 @@ make infra-down  # Stop services
 | **Phase 2** | Redis state bus + LiteLLM router + FastAPI + LangFuse + vLLM | ✅ Done (Mar 25) |
 | **Phase 3 Wave 1** | EvalReport (JSON/HTML), vLLM backend, acceptance criteria | ✅ Done (Mar 25) |
 | **Phase 3 Wave 3** | Agent fine-tuning — eval feedback loop, rag_k + model routing | ✅ Done (Mar 25) |
-| **Phase 3 Wave 2** | NeMo Guardrails + pgvector hybrid retrieval | 🔜 Planned (Mar 29) |
-| **Phase 3 Wave 4** | Colab notebook + end-to-end walkthrough | 🔜 Planned (Apr 3) |
+| **Phase 4** | Standalone Web UI — chat, graph viz, eval scorecard, tuner dashboard | ✅ Done (Mar 28) |
+| **Phase 3 Wave 2** | NeMo Guardrails + pgvector hybrid retrieval | 🔜 Planned |
+| **Phase 3 Wave 4** | Colab notebook + end-to-end walkthrough | 🔜 Planned |
 
 **Agent fine-tuning (Wave 3):** After each query, RAGAS scores feed back into AgentTuner. Low faithfulness triggers `rag_k` increase. Low relevancy triggers reasoning model. All adjustments are logged with reasoning.
+
+**Web UI (Phase 4):** Full React SPA with real-time streaming, SVG agent graph visualization, RAGAS metric scorecard, and tuner dashboard — all served from the FastAPI server. `docker compose up` gives you the full stack.
 
 ---
 
