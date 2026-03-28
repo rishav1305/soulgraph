@@ -50,9 +50,12 @@ const MOCK_ANSWERS: Record<string, string> = {
 
 function getAnswer(question: string): string {
   const lower = question.toLowerCase().trim();
-  for (const [key, answer] of Object.entries(MOCK_ANSWERS)) {
-    if (key === 'default') continue;
-    if (lower.includes(key)) return answer;
+  // Sort keys by length descending — longest match wins (prevents 'rag' matching before 'ragas')
+  const keys = Object.keys(MOCK_ANSWERS)
+    .filter((k) => k !== 'default')
+    .sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (lower.includes(key)) return MOCK_ANSWERS[key];
   }
   return MOCK_ANSWERS.default;
 }
