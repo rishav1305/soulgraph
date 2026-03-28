@@ -74,7 +74,7 @@ services:
       dockerfile: Dockerfile
     container_name: soulgraph-api
     ports:
-      - "8080:8080"
+      - "${SOULGRAPH_PORT:-9080}:8080"
     depends_on:
       redis:
         condition: service_healthy

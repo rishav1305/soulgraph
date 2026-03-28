@@ -171,11 +171,11 @@ cp .env.example .env          # Add your ANTHROPIC_API_KEY
 # Start everything
 docker compose up -d
 
-# Open the Web UI
-open http://localhost:8080
+# Open the Web UI (default port 9080, configurable via SOULGRAPH_PORT)
+open http://localhost:9080
 ```
 
-That's it. `docker compose up` builds the web UI, starts the Python API, and spins up Redis + ChromaDB + LangFuse. The web UI serves from the same port as the API.
+That's it. `docker compose up` builds the web UI, starts the Python API, and spins up Redis + ChromaDB + LangFuse. The web UI serves from the same port as the API. Set `SOULGRAPH_PORT=8080` in `.env` to use port 8080 instead.
 
 ### Development Setup (without Docker)
 
