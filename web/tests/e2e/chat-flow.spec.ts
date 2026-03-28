@@ -22,7 +22,7 @@ test.describe('Chat Flow', () => {
     // Should show empty message list with SoulGraph prompt
     const emptyState = page.getByTestId('message-list-empty');
     await expect(emptyState).toBeVisible();
-    await expect(emptyState.getByText('SoulGraph')).toBeVisible();
+    await expect(emptyState.getByRole('heading', { name: 'SoulGraph' })).toBeVisible();
     await expect(emptyState.getByText(/ask a question/i)).toBeVisible();
   });
 

@@ -10,6 +10,9 @@
 
 import { test, expect } from '@playwright/test';
 
+/** True when running against Docker stack instead of mock server. */
+const isExternalServer = Boolean(process.env.SOULGRAPH_URL);
+
 test.describe('Error States', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -18,7 +21,11 @@ test.describe('Error States', () => {
     await page.waitForLoadState('networkidle');
   });
 
+  // --- Mock-only tests: "error" keyword trigger is mock-server specific ---
+
   test('sending "error" triggers error display', async ({ page }) => {
+    test.skip(isExternalServer, 'Mock-only: "error" keyword trigger not available on real backend');
+
     const textarea = page.getByTestId('query-input-textarea');
     await textarea.fill('error');
     await page.getByTestId('query-input-submit').click();
@@ -35,6 +42,8 @@ test.describe('Error States', () => {
   });
 
   test('submit button re-enables after error', async ({ page }) => {
+    test.skip(isExternalServer, 'Mock-only: "error" keyword trigger not available on real backend');
+
     const textarea = page.getByTestId('query-input-textarea');
     await textarea.fill('error');
     await page.getByTestId('query-input-submit').click();
@@ -47,6 +56,8 @@ test.describe('Error States', () => {
   });
 
   test('can send a new query after error', async ({ page }) => {
+    test.skip(isExternalServer, 'Mock-only: "error" keyword trigger not available on real backend');
+
     const textarea = page.getByTestId('query-input-textarea');
 
     // Trigger error
@@ -68,6 +79,8 @@ test.describe('Error States', () => {
   });
 
   test('error clears when new query is sent', async ({ page }) => {
+    test.skip(isExternalServer, 'Mock-only: "error" keyword trigger not available on real backend');
+
     const textarea = page.getByTestId('query-input-textarea');
 
     // Trigger error

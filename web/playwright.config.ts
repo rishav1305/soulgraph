@@ -14,8 +14,14 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
-/** Base URL — vite dev server with proxy to mock backend. */
+/**
+ * Base URL — when SOULGRAPH_URL is set, tests run against that server
+ * (e.g., Docker stack on :9080). Otherwise, auto-start mock + vite dev.
+ */
 const BASE_URL = process.env.SOULGRAPH_URL ?? 'http://localhost:5173';
+
+/** True when running against an external server (Docker stack). */
+const isExternalServer = Boolean(process.env.SOULGRAPH_URL);
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -47,19 +53,24 @@ export default defineConfig({
     },
   ],
 
-  /* Auto-start mock backend + vite dev server. */
-  webServer: [
-    {
-      command: 'MOCK_WS_PORT=8081 npx tsx scripts/mock-ws.ts',
-      url: 'http://localhost:8081/health',
-      reuseExistingServer: true,
-      timeout: 15_000,
-    },
-    {
-      command: 'SOULGRAPH_BACKEND_PORT=8081 npx vite --port 5173',
-      url: BASE_URL,
-      reuseExistingServer: true,
-      timeout: 15_000,
-    },
-  ],
+  /*
+   * Auto-start mock backend + vite dev server.
+   * Skipped when SOULGRAPH_URL is set (running against Docker stack or deployed server).
+   */
+  ...(!isExternalServer && {
+    webServer: [
+      {
+        command: 'MOCK_WS_PORT=8081 npx tsx scripts/mock-ws.ts',
+        url: 'http://localhost:8081/health',
+        reuseExistingServer: true,
+        timeout: 15_000,
+      },
+      {
+        command: 'SOULGRAPH_BACKEND_PORT=8081 npx vite --port 5173',
+        url: BASE_URL,
+        reuseExistingServer: true,
+        timeout: 15_000,
+      },
+    ],
+  }),
 });
