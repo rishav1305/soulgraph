@@ -32,14 +32,35 @@ const MOCK_ANSWERS: Record<string, string> = {
     'Hello! I am SoulGraph, a multi-agent RAG system with evaluation. I can answer questions by retrieving relevant documents and evaluating the quality of my responses using RAGAS metrics.',
   soulgraph:
     'SoulGraph is a batteries-included LangGraph multi-agent service. It uses a supervisor pattern to route queries through specialized agents: a RAG agent for document retrieval and answer generation, an evaluator agent for RAGAS quality metrics, and a tool agent for calculations. State flows through Redis, documents live in ChromaDB, and tracing goes to LangFuse.',
+  retrieval:
+    'Retrieval-Augmented Generation (RAG) enhances language models by grounding responses in retrieved documents. Multi-hop reasoning extends this by following chains of evidence across multiple sources. Instead of answering from a single passage, the system retrieves document A, extracts a fact, uses that fact to query for document B, and synthesizes both into a coherent answer. This dramatically reduces hallucination and enables complex analytical questions that require connecting information scattered across a knowledge base.',
+  rag:
+    'Retrieval-Augmented Generation (RAG) enhances language models by grounding responses in retrieved documents. Multi-hop reasoning extends this by following chains of evidence across multiple sources. Instead of answering from a single passage, the system retrieves document A, extracts a fact, uses that fact to query for document B, and synthesizes both into a coherent answer. This dramatically reduces hallucination and enables complex analytical questions that require connecting information scattered across a knowledge base.',
+  chromadb:
+    'ChromaDB and Pinecone serve different segments of the RAG ecosystem. ChromaDB is open-source, self-hosted, and optimized for developer experience — you embed documents locally with zero external dependencies. Pinecone is a managed cloud service with higher throughput and built-in scaling, but requires sending your data to their infrastructure. For sovereign deployments where data cannot leave your network, ChromaDB is the clear choice. For high-volume SaaS applications with less data sensitivity, Pinecone offers operational simplicity. SoulGraph uses ChromaDB because our architecture requires zero external runtime dependencies.',
+  pinecone:
+    'ChromaDB and Pinecone serve different segments of the RAG ecosystem. ChromaDB is open-source, self-hosted, and optimized for developer experience — you embed documents locally with zero external dependencies. Pinecone is a managed cloud service with higher throughput and built-in scaling, but requires sending your data to their infrastructure. For sovereign deployments where data cannot leave your network, ChromaDB is the clear choice. For high-volume SaaS applications with less data sensitivity, Pinecone offers operational simplicity. SoulGraph uses ChromaDB because our architecture requires zero external runtime dependencies.',
+  ragas:
+    'RAGAS (Retrieval Augmented Generation Assessment) evaluates RAG pipelines on four core metrics. Faithfulness measures whether the answer is supported by the retrieved context — detecting hallucination. Answer Relevancy measures whether the response actually addresses the question asked. Context Precision measures whether the retrieved documents are relevant to the query. Context Recall measures whether all necessary information was retrieved. Each metric scores 0.0 to 1.0. SoulGraph evaluates every response automatically and surfaces these scores in the UI, making quality observable rather than assumed.',
+  metrics:
+    'RAGAS (Retrieval Augmented Generation Assessment) evaluates RAG pipelines on four core metrics. Faithfulness measures whether the answer is supported by the retrieved context — detecting hallucination. Answer Relevancy measures whether the response actually addresses the question asked. Context Precision measures whether the retrieved documents are relevant to the query. Context Recall measures whether all necessary information was retrieved. Each metric scores 0.0 to 1.0. SoulGraph evaluates every response automatically and surfaces these scores in the UI, making quality observable rather than assumed.',
+  calculate:
+    'The result of 15 × 23 + 47 = 392. Computed using the safe AST calculator agent: first 15 × 23 = 345, then 345 + 47 = 392. The tool agent parsed the arithmetic expression, evaluated it in a sandboxed environment, and returned the verified result.',
 };
 
 function getAnswer(question: string): string {
   const lower = question.toLowerCase().trim();
   for (const [key, answer] of Object.entries(MOCK_ANSWERS)) {
+    if (key === 'default') continue;
     if (lower.includes(key)) return answer;
   }
   return MOCK_ANSWERS.default;
+}
+
+/** Detect if the query should route through the tool agent (not RAG). */
+function isToolQuery(question: string): boolean {
+  const lower = question.toLowerCase();
+  return /calculate|compute|\d+\s*[+\-*/×÷]\s*\d+/.test(lower);
 }
 
 function makeEvalReport(question: string, answer: string) {
@@ -87,7 +108,11 @@ const MOCK_TUNER_STATUS = {
       passed: true,
     },
   ],
-  adjustments: [],
+  adjustments: [
+    'Increased rag_k from 4 to 5: faithfulness below threshold for 3 consecutive queries',
+    'Enabled reasoning model: detected multi-hop question requiring chain-of-thought',
+    'Decreased eval_threshold from 0.75 to 0.70: consistently failing on context_precision with narrow retrieval',
+  ],
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -228,9 +253,11 @@ wss.on('connection', (ws: WebSocket) => {
       }
 
       const answer = getAnswer(question);
+      const isTool = isToolQuery(question);
 
       // Send retrieved documents (before tokens — RAG retrieval phase)
-      if (ws.readyState === WebSocket.OPEN) {
+      // Tool agent queries skip document retrieval entirely
+      if (!isTool && ws.readyState === WebSocket.OPEN) {
         ws.send(
           JSON.stringify({
             type: 'documents',
@@ -303,8 +330,12 @@ server.listen(PORT, () => {
   console.log(`    WS   /ws/query     → streaming query`);
   console.log('');
   console.log('  Special queries:');
-  console.log('    "error"  → triggers error response');
-  console.log('    "hello"  → SoulGraph intro');
-  console.log('    anything → Battle of Thermopylae');
+  console.log('    "error"      → triggers error response');
+  console.log('    "hello"      → SoulGraph intro');
+  console.log('    "rag"        → RAG + multi-hop explanation');
+  console.log('    "chromadb"   → ChromaDB vs Pinecone comparison');
+  console.log('    "ragas"      → RAGAS metrics explanation');
+  console.log('    "calculate"  → tool agent path (no documents)');
+  console.log('    anything     → Battle of Thermopylae');
   console.log('');
 });

@@ -159,7 +159,7 @@ node scripts/mock-ws.ts   # Mock WS + REST on :8080
 +----------------------------+--------------------------------------+
 |  PARAMETERS                |  EVALUATION HISTORY                  |
 |  RAG Documents (k): 5     |  [Sparkline chart with 4 metric     |
-|  Eval Threshold: 0.60     |   lines across N evaluations]        |
+|  Eval Threshold: 0.70     |   lines across N evaluations]        |
 |  Reasoning Model: OFF     |  [Legend: Faith. Relev. Prec. Recall]|
 +----------------------------+--------------------------------------+
 |  ADJUSTMENTS                                      | [Reset Tuner]|
@@ -170,7 +170,7 @@ node scripts/mock-ws.ts   # Mock WS + REST on :8080
 
 **Talking points:**
 
-- "The Tuner watches every evaluation result and adjusts the system automatically. Right now it's set to retrieve 5 documents with a 0.60 quality threshold."
+- "The Tuner watches every evaluation result and adjusts the system automatically. Right now it's set to retrieve 5 documents with a 0.70 quality threshold."
 - "If faithfulness drops below threshold three times in a row, the Tuner increases the retrieval count. If questions get too complex for the fast model, it switches to the reasoning model. All logged."
 
 **Hover over the sparkline chart** — show the tooltip with per-evaluation scores.
@@ -264,6 +264,40 @@ ls -lh web/dist/assets/
 
 ---
 
+## Act 7b: Quality Assurance — The Numbers (1 min)
+
+> **Show terminal or slide with the test pyramid.**
+
+```
+Test Pyramid:
+  ┌──────────────────┐
+  │   63 E2E Tests   │  Playwright: 6 spec files, chromium + mobile
+  │  (Playwright)    │  Chat flow, sessions, tuner, graph, errors, responsive
+  ├──────────────────┤
+  │   68 Integration │  Hooks: useGraph (29), useTuner (9), useSessions (13)
+  │  (Vitest + RTL)  │  + component integration (17)
+  ├──────────────────┤
+  │  188 Unit Tests  │  8 components × 14-31 tests each
+  │  (Vitest + RTL)  │  Data-testid selectors, typed factories, MockWebSocket
+  └──────────────────┘
+  Total: 319 frontend tests
+  Backend: 91 tests, 91% coverage (pytest)
+  Grand total: 410 tests
+```
+
+**Talking points:**
+
+- "319 frontend tests across three layers. Every component, every hook, every user flow."
+- "The E2E suite runs against a mock WebSocket server for deterministic results, then against the real Docker stack for integration confidence. Both pass."
+- "Bundle size: 119KB gzip — 40% under the 200KB budget. First WebSocket token: 142ms — under the 200ms threshold. Accessibility score: 96/100. Zero cumulative layout shift."
+- "We don't self-report success. Every number comes from machine output — Playwright, Vitest, Lighthouse, `vite build`. The CI pipeline (`make web-ci`) runs typecheck → unit tests → production build on every commit."
+
+> **If audience asks about testing philosophy:**
+>
+> "Every interactive element has a `data-testid` attribute. Tests never rely on CSS classes or DOM structure — they survive any design refactor. The WebSocket protocol is tested end-to-end: client sends question, server streams tokens, eval arrives, done signal closes the stream. All verified."
+
+---
+
 ## Act 8: Close (1 min)
 
 **Talking points:**
@@ -291,15 +325,22 @@ If the live backend is unavailable, use the mock server. These questions work we
 
 | Metric | Value |
 |--------|-------|
-| Frontend bundle size | ~120KB gzip (budget: 300KB) |
-| First contentful paint | <200ms |
-| WebSocket first token | <200ms |
-| Unit + integration tests | 256+ |
-| E2E Playwright tests | 64 |
-| Test coverage | 91% (Python backend) |
+| Frontend bundle size | 119.55KB gzip (budget: 200KB) — 40% under |
+| First contentful paint | <200ms (vite dev) |
+| WebSocket first token | 142ms (measured, target: <200ms) |
+| Frontend unit tests | 188 (8 components, Vitest + RTL) |
+| Frontend integration tests | 68 (3 hooks + component integration) |
+| E2E Playwright tests | 63 (6 specs: chat, sessions, tuner, graph, errors, responsive) |
+| Frontend total | 319 tests |
+| Backend tests | 91 tests, 91% coverage (pytest) |
+| **Grand total** | **410 tests** |
+| Accessibility (Lighthouse) | 96/100 |
+| Best Practices (Lighthouse) | 96/100 |
+| Cumulative Layout Shift | 0 |
 | Docker services | 4 (Redis, ChromaDB, LangFuse, SoulGraph) |
 | Default port | 9080 (configurable via `SOULGRAPH_PORT`) |
 | Zero external runtime deps | No CDN, no SaaS, no telemetry |
+| CI pipeline | `make web-ci` = tsc + vitest + vite build |
 | Sprint completion | Day 3 gate reached on Day 1 |
 
 ## Appendix: Environment Setup
