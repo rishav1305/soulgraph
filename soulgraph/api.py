@@ -1,16 +1,22 @@
-"""FastAPI application — REST + WebSocket streaming for SoulGraph."""
+"""FastAPI application — REST + WebSocket streaming + static UI serving for SoulGraph."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+# ── Static file paths ──
+# web/dist/ is built by `cd web && npm run build`.
+_WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 
 app = FastAPI(
     title="SoulGraph API",
@@ -183,3 +189,28 @@ async def tune_reset() -> JSONResponse:
     from soulgraph.tuner import get_tuner
     get_tuner().reset()
     return JSONResponse(content={"status": "reset", "params": get_tuner().get_params().to_dict()})
+
+
+# ---------------------------------------------------------------------------
+# Static UI serving (web/dist/)
+# ---------------------------------------------------------------------------
+# Mount AFTER all API routes so /health, /query, /ws/query, /tune/* take priority.
+# StaticFiles serves JS/CSS/images. The catch-all below handles SPA routing
+# (any path not matched by an API route or static file returns index.html).
+
+if _WEB_DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(_WEB_DIST / "assets")), name="static-assets")
+
+    @app.get("/{path:path}")
+    async def spa_fallback(request: Request, path: str) -> FileResponse:
+        """Serve static files or fall back to index.html for SPA routing."""
+        file_path = _WEB_DIST / path
+        if file_path.is_file() and file_path.resolve().is_relative_to(_WEB_DIST.resolve()):
+            return FileResponse(str(file_path))
+        return FileResponse(str(_WEB_DIST / "index.html"))
+else:
+    logger.info(
+        "Web UI not found at %s — run 'cd web && npm run build' to enable. "
+        "API-only mode.",
+        _WEB_DIST,
+    )
