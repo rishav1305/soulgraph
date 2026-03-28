@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════
+   SOULGRAPH DESIGN SYSTEM — "Zinc Dark"
+   Matching Soul v2 palette + SoulGraph report.py styling.
+   S6: Happy — Sprint Day 1
+   ═══════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Background layers ── */
+  --color-deep: #020617;
+  --color-surface: #0f172a;
+  --color-elevated: #1e293b;
+  --color-overlay: #334155;
+
+  /* ── Foreground ── */
+  --color-fg: #e2e8f0;
+  --color-fg-secondary: #94a3b8;
+  --color-fg-muted: #64748b;
+
+  /* ── Accent — gold (Soul brand) ── */
+  --color-soul: #CA8A04;
+  --color-soul-dim: #CA8A0420;
+  --color-soul-glow: #CA8A0433;
+
+  /* ── Borders ── */
+  --color-border-subtle: #ffffff1a;
+  --color-border-default: #1e293b;
+  --color-border-active: #ffffff38;
+
+  /* ── Status / eval ── */
+  --color-pass: #22c55e;
+  --color-fail: #ef4444;
+  --color-warn: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* ── Score metric colors (for EvalReport bars) ── */
+  --color-score-high: #22c55e;
+  --color-score-mid: #f59e0b;
+  --color-score-low: #ef4444;
+
+  /* ── Agent graph node colors ── */
+  --color-node-supervisor: #CA8A04;
+  --color-node-rag: #3b82f6;
+  --color-node-evaluator: #22c55e;
+  --color-node-tool: #a855f7;
+
+  /* ── Fonts ── */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* ── Base ── */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-deep);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+}
+
+/* ── Scrollbar (webkit) ── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-overlay); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-fg-muted); }
+
+/* Firefox scrollbar */
+* { scrollbar-width: thin; scrollbar-color: var(--color-overlay) transparent; }
+
+/* ── Selection ── */
+
+::selection {
+  background: rgba(202, 138, 4, 0.25);
+  color: var(--color-fg);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes soul-pulse {
+  0%, 100% { opacity: 0.5; filter: blur(12px); }
+  50% { opacity: 0.8; filter: blur(16px); }
+}
+
+/* Banner: Graph + Eval node pulse */
+@keyframes pulse-soul {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes stream-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(202, 138, 4, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(202, 138, 4, 0); }
+}
+
+@keyframes score-fill {
+  from { width: 0%; }
+}
+
+/* Banner: Completion flash (green ring fades out after query completes) */
+@keyframes completion-flash {
+  0% { opacity: 0.8; stroke-width: 3; }
+  50% { opacity: 0.4; stroke-width: 2; }
+  100% { opacity: 0; stroke-width: 1; }
+}
+
+/* ── Animation utility classes ── */
+
+.animate-fade-in { animation: fade-in 0.3s ease-out both; }
+.animate-fade-in-up { animation: fade-in-up 0.4s ease-out both; }
+.animate-slide-in-left { animation: slide-in-left 0.3s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out both; }
+.animate-soul-pulse { animation: soul-pulse 3s ease-in-out infinite; }
+.animate-pulse-soul { animation: pulse-soul 1.5s ease-in-out infinite; }
+.animate-node-pulse { animation: node-pulse 2s ease-in-out infinite; }
+.animate-score-fill { animation: score-fill 0.6s ease-out both; }
+.animate-completion-flash { animation: completion-flash 1.5s ease-out both; }
+
+/* ═══════════════════════════════════════════════════════
+   COMPONENT UTILITIES
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Glass effect ── */
+
+.glass {
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* ── Streaming cursor (blinking caret at end of streaming text) ── */
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--color-soul);
+  border-radius: 1px;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ── Stream progress bar ── */
+
+.stream-bar {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  background: var(--color-soul-dim);
+}
+.stream-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--color-soul) 40%, var(--color-soul) 60%, transparent);
+  animation: stream-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Glow utilities ── */
+
+.glow-soul {
+  box-shadow: 0 0 20px rgba(202, 138, 4, 0.15),
+              0 0 60px rgba(202, 138, 4, 0.05);
+}
+
+.glow-pass {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+}
+
+.glow-fail {
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+/* ── Score bar (for EvalReport metric display) ── */
+
+.score-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-elevated);
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease-out;
+}
+
+/* ── Sidebar transitions ── */
+
+.sidebar-transition { transition: width 200ms ease, padding 200ms ease; }
+
+/* ── Panel container (consistent padding/overflow) ── */
+
+.panel-container {
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-default);
+}
+
+/* ═══════════════════════════════════════════════════════
+   CUSTOM SELECT (matching Soul v2)
+   ═══════════════════════════════════════════════════════ */
+
+select.soul-select {
+  background-color: var(--color-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  height: 32px;
+  padding: 0 22px 0 8px;
+  font-size: 11px;
+  line-height: 32px;
+  text-align: center;
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+select.soul-select:hover {
+  border-color: var(--color-border-active);
+  background-color: var(--color-overlay);
+  color: var(--color-fg);
+}
+
+select.soul-select:focus {
+  outline: none;
+  border-color: var(--color-soul);
+  box-shadow: 0 0 0 1px var(--color-soul-dim);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MARKDOWN PROSE (for assistant message content)
+   ═══════════════════════════════════════════════════════ */
+
+.prose-soul {
+  line-height: 1.65;
+  font-size: 0.875rem;
+}
+
+.prose-soul h1,
+.prose-soul h2,
+.prose-soul h3 {
+  font-family: var(--font-display);
+  color: var(--color-fg);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.prose-soul h1 { font-size: 1.25rem; }
+.prose-soul h2 { font-size: 1.1rem; }
+.prose-soul h3 { font-size: 1rem; }
+
+.prose-soul p { margin: 0.75em 0; }
+
+.prose-soul code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  background: var(--color-elevated);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  color: var(--color-soul);
+}
+
+.prose-soul pre {
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.prose-soul pre code {
+  background: none;
+  padding: 0;
+  color: var(--color-fg);
+  font-size: 0.8rem;
+}
+
+.prose-soul ul,
+.prose-soul ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.prose-soul li { margin: 0.25em 0; }
+
+.prose-soul a {
+  color: var(--color-soul);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-soul a:hover { color: var(--color-fg); }
+
+.prose-soul blockquote {
+  border-left: 3px solid var(--color-soul);
+  padding-left: 1em;
+  margin: 0.75em 0;
+  color: var(--color-fg-secondary);
+}
+
+.prose-soul table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+}
+
+.prose-soul th {
+  background: var(--color-elevated);
+  padding: 0.5em 0.75em;
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--color-fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prose-soul td {
+  padding: 0.5em 0.75em;
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES
+   ═══════════════════════════════════════════════════════ */
+
+/* Hide sidebar label text on mobile */
+@media (max-width: 767px) {
+  .sidebar-label { display: none; }
+}
+
+/* Safe areas for mobile */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
