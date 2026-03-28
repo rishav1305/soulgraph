@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.venv/
+venv/
+
+# Node
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Docker volumes
+redis-data/
+chroma-data/
+
+# Git
+.git/
+
+# IDE
+.idea/
+.vscode/
+
+# Secrets
+.env
+*.env
+.env.local
+
+# Docs (not needed in runtime image)
+docs/
+*.md
+!CLAUDE.md
