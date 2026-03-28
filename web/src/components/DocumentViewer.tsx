@@ -10,7 +10,25 @@
  * Owner: Banner (P4) | Sprint Day 3 (pulled forward)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+
+// ── Hooks ──
+
+/** Detect mobile viewport (<768px) for responsive behavior. */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  return isMobile;
+}
 
 // ── Types ──
 
@@ -37,20 +55,25 @@ function DocumentCard({
   index,
   previewLength,
   forceExpanded,
+  isMobile,
 }: {
   content: string;
   index: number;
   previewLength: number;
   forceExpanded: boolean;
+  isMobile: boolean;
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
+  // On mobile, all cards are collapsible (even short content)
+  const isCollapsible = isMobile || content.length > previewLength;
   const expanded = forceExpanded || localExpanded;
-  const isLong = content.length > previewLength;
-  const preview = isLong ? content.slice(0, previewLength) + '...' : content;
+  const preview = content.length > previewLength
+    ? content.slice(0, previewLength) + '...'
+    : content;
 
   const toggle = useCallback(() => {
-    if (isLong) setLocalExpanded((e) => !e);
-  }, [isLong]);
+    if (isCollapsible) setLocalExpanded((e) => !e);
+  }, [isCollapsible]);
 
   return (
     <div
@@ -62,15 +85,15 @@ function DocumentCard({
       <button
         data-testid={`document-toggle-${index}`}
         onClick={toggle}
-        disabled={!isLong}
+        disabled={!isCollapsible}
         className={`flex items-center gap-2 w-full text-left ${
-          isLong ? 'cursor-pointer' : 'cursor-default'
+          isCollapsible ? 'cursor-pointer' : 'cursor-default'
         }`}
-        aria-expanded={expanded}
-        aria-label={`Document ${index + 1}${isLong ? ', click to expand' : ''}`}
+        aria-expanded={isCollapsible ? expanded : undefined}
+        aria-label={`Document ${index + 1}${isCollapsible ? ', click to expand' : ''}`}
       >
         {/* Chevron */}
-        {isLong && (
+        {isCollapsible && (
           <svg
             className={`w-3.5 h-3.5 shrink-0 text-fg-muted transition-transform duration-200 ${
               expanded ? 'rotate-180' : ''
@@ -100,11 +123,11 @@ function DocumentCard({
       {/* Content */}
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          expanded ? 'max-h-96 mt-2' : isLong ? 'max-h-0' : 'mt-2 max-h-96'
+          expanded ? 'max-h-96 mt-2' : isCollapsible ? 'max-h-0' : 'mt-2 max-h-96'
         }`}
       >
         <div className="text-xs text-fg-secondary/80 leading-relaxed font-mono whitespace-pre-wrap break-words pl-7">
-          {expanded ? content : (!isLong ? content : preview)}
+          {expanded ? content : (!isCollapsible ? content : preview)}
         </div>
 
         {/* Character count */}
@@ -124,6 +147,7 @@ export default function DocumentViewer({
   className = '',
 }: DocumentViewerProps) {
   const [allExpanded, setAllExpanded] = useState(false);
+  const isMobile = useIsMobile();
 
   if (documents.length === 0) {
     return (
@@ -170,6 +194,7 @@ export default function DocumentViewer({
             index={i}
             previewLength={previewLength}
             forceExpanded={allExpanded}
+            isMobile={isMobile}
           />
         ))}
       </div>

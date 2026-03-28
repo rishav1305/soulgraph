@@ -150,19 +150,19 @@ export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
         <main
           id="main-content"
           data-testid="layout-main"
-          className="flex-1 flex min-h-0 min-w-0 overflow-hidden"
+          className="flex-1 flex flex-col lg:flex-row min-h-0 min-w-0 overflow-hidden"
         >
           {/* Primary content (ChatInterface) */}
           <div data-testid="layout-content" className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
             {children}
           </div>
 
-          {/* Right panel (GraphViz, TunerDashboard — desktop only) */}
+          {/* Right panel — stacks below chat on mobile, side-by-side on lg+ */}
           {rightPanel && (
             <aside
               data-testid="layout-right-panel"
               aria-label="Agent visualization"
-              className="hidden lg:flex flex-col w-80 xl:w-96 h-full bg-surface border-l border-border-default shrink-0 overflow-y-auto"
+              className="flex flex-col w-full lg:w-80 xl:w-96 max-h-[40vh] lg:max-h-none lg:h-full bg-surface border-t lg:border-t-0 lg:border-l border-border-default shrink-0 overflow-y-auto"
             >
               {rightPanel}
             </aside>

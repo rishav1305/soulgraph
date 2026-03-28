@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+const BACKEND_PORT = process.env.SOULGRAPH_BACKEND_PORT ?? '8081';
+const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -13,11 +16,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Proxy API calls to SoulGraph backend (or mock server)
-      '/query': 'http://localhost:8080',
-      '/health': 'http://localhost:8080',
-      '/tune': 'http://localhost:8080',
+      '/query': BACKEND_URL,
+      '/health': BACKEND_URL,
+      '/tune': BACKEND_URL,
       '/ws': {
-        target: 'ws://localhost:8080',
+        target: `ws://localhost:${BACKEND_PORT}`,
         ws: true,
       },
     },

@@ -20,9 +20,10 @@ test.describe('Chat Flow', () => {
 
   test('app loads with empty state', async ({ page }) => {
     // Should show empty message list with SoulGraph prompt
-    await expect(page.getByTestId('message-list-empty')).toBeVisible();
-    await expect(page.getByText('SoulGraph')).toBeVisible();
-    await expect(page.getByText(/ask a question/i)).toBeVisible();
+    const emptyState = page.getByTestId('message-list-empty');
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState.getByText('SoulGraph')).toBeVisible();
+    await expect(emptyState.getByText(/ask a question/i)).toBeVisible();
   });
 
   test('query input is visible and focusable', async ({ page }) => {

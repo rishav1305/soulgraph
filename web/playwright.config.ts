@@ -38,6 +38,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /responsive\.spec\.ts/,
     },
     {
       name: 'mobile',
@@ -49,13 +50,13 @@ export default defineConfig({
   /* Auto-start mock backend + vite dev server. */
   webServer: [
     {
-      command: 'npx tsx scripts/mock-ws.ts',
-      url: 'http://localhost:8080/health',
+      command: 'MOCK_WS_PORT=8081 npx tsx scripts/mock-ws.ts',
+      url: 'http://localhost:8081/health',
       reuseExistingServer: true,
       timeout: 15_000,
     },
     {
-      command: 'npx vite --port 5173',
+      command: 'SOULGRAPH_BACKEND_PORT=8081 npx vite --port 5173',
       url: BASE_URL,
       reuseExistingServer: true,
       timeout: 15_000,

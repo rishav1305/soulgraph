@@ -18,7 +18,7 @@
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const PORT = 8080;
+const PORT = Number(process.env.MOCK_WS_PORT ?? 8081);
 const TOKEN_DELAY_MS = 50; // ms between streamed tokens
 
 // ─────────────────────────────────────────────────────────────

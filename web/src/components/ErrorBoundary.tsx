@@ -68,6 +68,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             </span>
             <button
               type="button"
+              data-testid={`error-boundary-retry-${name}`}
               onClick={this.handleRetry}
               className="text-xs text-fail hover:text-fail/80 underline cursor-pointer shrink-0"
               aria-label={`Retry ${name}`}
