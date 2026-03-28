@@ -25,10 +25,10 @@ from soulgraph.tune_params import DEFAULT_RAG_K, TuningParams
 logger = logging.getLogger(__name__)
 
 # Tuning rule thresholds
-_FAILURE_TRIGGER = 3   # consecutive failures before adjusting
+_FAILURE_TRIGGER = 3  # consecutive failures before adjusting
 _RECOVERY_TRIGGER = 5  # consecutive passes before relaxing
-_RAG_K_STEP = 2        # how much to increment rag_k per trigger
-_RAG_K_MAX = 20        # hard cap on rag_k
+_RAG_K_STEP = 2  # how much to increment rag_k per trigger
+_RAG_K_MAX = 20  # hard cap on rag_k
 _RAG_K_MIN = DEFAULT_RAG_K
 
 # Redis key namespace
@@ -148,9 +148,7 @@ class AgentTuner:
         if len(recent) < _FAILURE_TRIGGER:
             return
         threshold = self._params.eval_threshold
-        consistently_low = all(
-            (r.get("faithfulness") or 1.0) < threshold for r in recent
-        )
+        consistently_low = all((r.get("faithfulness") or 1.0) < threshold for r in recent)
         if consistently_low and self._params.rag_k < _RAG_K_MAX:
             old_k = self._params.rag_k
             self._params.rag_k = min(self._params.rag_k + _RAG_K_STEP, _RAG_K_MAX)
@@ -167,9 +165,7 @@ class AgentTuner:
         if len(recent) < _FAILURE_TRIGGER:
             return
         threshold = self._params.eval_threshold
-        consistently_low = all(
-            (r.get("answer_relevancy") or 1.0) < threshold for r in recent
-        )
+        consistently_low = all((r.get("answer_relevancy") or 1.0) < threshold for r in recent)
         if consistently_low and not self._params.prefer_reasoning_model:
             self._params.prefer_reasoning_model = True
             msg = (
@@ -193,7 +189,8 @@ class AgentTuner:
             self._params.rag_k = max(self._params.rag_k - _RAG_K_STEP, _RAG_K_MIN)
             msg = (
                 f"rag_k: {old_k} → {self._params.rag_k}  "
-                f"[{_RECOVERY_TRIGGER} consecutive passes — relaxing]")
+                f"[{_RECOVERY_TRIGGER} consecutive passes — relaxing]"
+            )
             self._adjustments.append(msg)
             logger.info("AgentTuner adjustment: %s", msg)
         # Relax reasoning model preference.

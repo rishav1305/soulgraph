@@ -288,10 +288,17 @@ class TestCriterionSeven:
         # Trigger a tuning adjustment
         tuner = get_tuner()
         for _ in range(3):
-            tuner.observe({
-                "scores": {"faithfulness": 0.4, "answer_relevancy": 0.9, "context_precision": 0.85, "context_recall": 0.82},
-                "passed": False
-            })
+            tuner.observe(
+                {
+                    "scores": {
+                        "faithfulness": 0.4,
+                        "answer_relevancy": 0.9,
+                        "context_precision": 0.85,
+                        "context_recall": 0.82,
+                    },
+                    "passed": False,
+                }
+            )
         assert tuner.get_params().rag_k > DEFAULT_RAG_K
 
         # Reset via API

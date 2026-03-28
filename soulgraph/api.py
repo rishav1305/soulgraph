@@ -176,10 +176,12 @@ if __name__ == "__main__":
 # Agent fine-tuning endpoints (Phase 3 Wave 3)
 # ---------------------------------------------------------------------------
 
+
 @app.get("/tune/status")
 async def tune_status() -> JSONResponse:
     """Return current tuning parameters and eval history."""
     from soulgraph.tuner import get_tuner
+
     return JSONResponse(content=get_tuner().status())
 
 
@@ -187,6 +189,7 @@ async def tune_status() -> JSONResponse:
 async def tune_reset() -> JSONResponse:
     """Reset all tuning parameters and history to defaults."""
     from soulgraph.tuner import get_tuner
+
     get_tuner().reset()
     return JSONResponse(content={"status": "reset", "params": get_tuner().get_params().to_dict()})
 
@@ -210,7 +213,6 @@ if _WEB_DIST.is_dir():
         return FileResponse(str(_WEB_DIST / "index.html"))
 else:
     logger.info(
-        "Web UI not found at %s — run 'cd web && npm run build' to enable. "
-        "API-only mode.",
+        "Web UI not found at %s — run 'cd web && npm run build' to enable. API-only mode.",
         _WEB_DIST,
     )

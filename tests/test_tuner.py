@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 from soulgraph.tune_params import DEFAULT_RAG_K, TuningParams
 from soulgraph.tuner import AgentTuner, get_tuner, reset_tuner
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _pass_report(**overrides) -> dict:
     """Build a passing eval report."""
@@ -61,6 +59,7 @@ def _fail_relevancy() -> dict:
 # TuningParams tests
 # ---------------------------------------------------------------------------
 
+
 class TestTuningParams:
     def test_defaults_are_sane(self) -> None:
         p = TuningParams()
@@ -80,6 +79,7 @@ class TestTuningParams:
 # ---------------------------------------------------------------------------
 # AgentTuner — basic behaviour
 # ---------------------------------------------------------------------------
+
 
 class TestAgentTuner:
     def test_initial_params_are_defaults(self) -> None:
@@ -109,6 +109,7 @@ class TestAgentTuner:
 # Tuning rules — faithfulness
 # ---------------------------------------------------------------------------
 
+
 class TestFaithfulnessTuning:
     def test_rag_k_increases_after_3_faithfulness_failures(self) -> None:
         tuner = AgentTuner()
@@ -135,6 +136,7 @@ class TestFaithfulnessTuning:
 # Tuning rules — relevancy
 # ---------------------------------------------------------------------------
 
+
 class TestRelevancyTuning:
     def test_reasoning_model_preferred_after_3_relevancy_failures(self) -> None:
         tuner = AgentTuner()
@@ -152,6 +154,7 @@ class TestRelevancyTuning:
 # ---------------------------------------------------------------------------
 # Tuning rules — recovery (relaxation)
 # ---------------------------------------------------------------------------
+
 
 class TestRecoveryTuning:
     def test_rag_k_decremented_after_consecutive_passes(self) -> None:
@@ -188,6 +191,7 @@ class TestRecoveryTuning:
 # Status output
 # ---------------------------------------------------------------------------
 
+
 class TestTunerStatus:
     def test_status_includes_params(self) -> None:
         tuner = AgentTuner()
@@ -215,10 +219,18 @@ class TestTunerStatus:
 # Graceful handling
 # ---------------------------------------------------------------------------
 
+
 class TestGracefulHandling:
     def test_observe_handles_none_scores(self) -> None:
         tuner = AgentTuner()
-        report = _pass_report(scores={"faithfulness": None, "answer_relevancy": None, "context_precision": None, "context_recall": None})
+        report = _pass_report(
+            scores={
+                "faithfulness": None,
+                "answer_relevancy": None,
+                "context_precision": None,
+                "context_recall": None,
+            }
+        )
         tuner.observe(report)  # should not raise
 
     def test_observe_handles_missing_scores(self) -> None:
@@ -237,14 +249,16 @@ class TestGracefulHandling:
 # Redis persistence
 # ---------------------------------------------------------------------------
 
+
 class TestAgentTunerRedis:
     """Tests for Redis-backed persistence in AgentTuner.
 
     Uses a MagicMock to simulate Redis without requiring a live instance.
     """
 
-    def _make_redis(self) -> "MagicMock":  # noqa: F821
+    def _make_redis(self) -> MagicMock:  # noqa: F821
         from unittest.mock import MagicMock
+
         mock = MagicMock()
         # Simulate empty Redis on first load (no stored state).
         mock.get.return_value = None
@@ -253,7 +267,8 @@ class TestAgentTunerRedis:
 
     def test_init_with_redis_calls_load(self) -> None:
         """AgentTuner.__init__ calls _load_from_redis when redis_client is given."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
+
         mock_redis = self._make_redis()
         with patch.object(AgentTuner, "_load_from_redis") as mock_load:
             AgentTuner(redis_client=mock_redis)
@@ -261,7 +276,8 @@ class TestAgentTunerRedis:
 
     def test_observe_with_redis_calls_save(self) -> None:
         """observe() calls _save_to_redis after applying rules."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import patch
+
         mock_redis = self._make_redis()
         tuner = AgentTuner(redis_client=mock_redis)
         with patch.object(tuner, "_save_to_redis") as mock_save:
@@ -271,6 +287,7 @@ class TestAgentTunerRedis:
     def test_reset_with_redis_deletes_keys(self) -> None:
         """reset() deletes all three Redis keys when redis_client is set."""
         from soulgraph.tuner import _REDIS_KEY_ADJUSTMENTS, _REDIS_KEY_HISTORY, _REDIS_KEY_PARAMS
+
         mock_redis = self._make_redis()
         tuner = AgentTuner(redis_client=mock_redis)
         tuner.observe(_pass_report())
@@ -284,7 +301,9 @@ class TestAgentTunerRedis:
     def test_load_from_redis_restores_params(self) -> None:
         """_load_from_redis restores TuningParams from serialised Redis data."""
         import json
-        from soulgraph.tuner import _REDIS_KEY_HISTORY, _REDIS_KEY_PARAMS, _REDIS_KEY_ADJUSTMENTS
+
+        from soulgraph.tuner import _REDIS_KEY_ADJUSTMENTS, _REDIS_KEY_HISTORY
+
         mock_redis = self._make_redis()
         stored_params = TuningParams(rag_k=12, prefer_reasoning_model=True)
         mock_redis.get.return_value = json.dumps(stored_params.to_dict()).encode()
@@ -312,8 +331,9 @@ class TestAgentTunerRedis:
 
     def test_save_to_redis_persists_state(self) -> None:
         """_save_to_redis writes params, history, and adjustments to Redis."""
-        import json
-        from soulgraph.tuner import _REDIS_KEY_PARAMS, _REDIS_KEY_HISTORY
+
+        from soulgraph.tuner import _REDIS_KEY_HISTORY, _REDIS_KEY_PARAMS
+
         mock_redis = self._make_redis()
         tuner = AgentTuner(redis_client=mock_redis)
         tuner.observe(_pass_report())
@@ -336,6 +356,7 @@ class TestAgentTunerRedis:
     def test_save_to_redis_persists_adjustments(self) -> None:
         """_save_to_redis pushes adjustment log entries to Redis."""
         from soulgraph.tuner import _REDIS_KEY_ADJUSTMENTS
+
         mock_redis = self._make_redis()
         tuner = AgentTuner(redis_client=mock_redis)
         # Trigger a tuning rule so _adjustments is non-empty.
@@ -350,6 +371,7 @@ class TestAgentTunerRedis:
 # ---------------------------------------------------------------------------
 # Module-level singleton (get_tuner / reset_tuner)
 # ---------------------------------------------------------------------------
+
 
 class TestTunerSingleton:
     def setup_method(self) -> None:

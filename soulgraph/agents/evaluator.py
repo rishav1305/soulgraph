@@ -110,5 +110,6 @@ class EvaluatorAgent:
             get_tuner().observe(eval_report)
         except Exception as exc:
             import logging
+
             logging.getLogger(__name__).warning("AgentTuner.observe failed: %s", exc)
         return {"eval_report": eval_report, "next_agent": "END"}

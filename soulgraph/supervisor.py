@@ -82,7 +82,8 @@ def supervisor_node(state: AgentState) -> AgentState:
     # adjustments are respected (routing to a higher-tier model when needed).
     tuner_params = get_tuner().get_params()
     if tuner_params.prefer_reasoning_model:
-        from soulgraph.router import ModelRouter, TaskType, router_from_settings
+        from soulgraph.router import ModelRouter, TaskType
+
         base = _get_router()
         # Build a one-shot router that forces the reasoning model for this query.
         fast_model = base.get_model(TaskType.REASONING)  # use reasoning for both tiers

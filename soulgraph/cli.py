@@ -79,6 +79,7 @@ def tune_main() -> None:
     args = parser.parse_args()
 
     from soulgraph.tuner import get_tuner  # noqa: PLC0415
+
     tuner = get_tuner()
 
     if args.action == "status":

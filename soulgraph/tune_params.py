@@ -30,7 +30,7 @@ class TuningParams:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TuningParams":
+    def from_dict(cls, data: dict) -> TuningParams:
         """Deserialise from a plain dict."""
         return cls(
             rag_k=int(data.get("rag_k", DEFAULT_RAG_K)),
