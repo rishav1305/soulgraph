@@ -93,29 +93,35 @@ function EvalReportCompact({ report }: EvalReportProps) {
   );
 }
 
-/** Single metric bar row. */
+/** Single metric bar row with entrance animation. */
 function MetricBar({
   metricKey,
   score,
   threshold,
+  index,
 }: {
   metricKey: string;
   score: number | null;
   threshold: number;
+  index: number;
 }) {
   const config = METRIC_CONFIG[metricKey];
   const isNull = score === null;
   const isPassing = !isNull && score >= threshold;
 
   return (
-    <div data-testid={`eval-metric-${metricKey}`} className="flex items-center gap-3">
-      {/* Label */}
-      <span className="w-36 shrink-0 text-sm text-fg-secondary truncate">
+    <div
+      data-testid={`eval-metric-${metricKey}`}
+      className="flex items-center gap-2 sm:gap-3 animate-fade-in"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      {/* Label — compact on mobile */}
+      <span className="w-24 sm:w-36 shrink-0 text-xs sm:text-sm text-fg-secondary truncate">
         {config?.label ?? metricKey}
       </span>
 
       {/* Bar container */}
-      <div className="relative flex-1 h-5 rounded-sm bg-elevated overflow-hidden">
+      <div className="relative flex-1 h-4 sm:h-5 rounded-sm bg-elevated overflow-hidden">
         {/* Threshold marker */}
         <div
           data-testid="eval-threshold-line"
@@ -133,19 +139,22 @@ function MetricBar({
             }}
           />
         ) : (
-          /* Score fill */
+          /* Score fill with entrance animation */
           <div
-            className={`h-full rounded-sm transition-all duration-500 ease-out ${
+            className={`h-full rounded-sm animate-score-fill ${
               isPassing ? 'bg-pass' : 'bg-fail'
             }`}
-            style={{ width: `${Math.min(score * 100, 100)}%` }}
+            style={{
+              width: `${Math.min(score * 100, 100)}%`,
+              animationDelay: `${index * 80 + 150}ms`,
+            }}
           />
         )}
       </div>
 
       {/* Score value */}
       <span
-        className={`w-10 text-right font-mono text-sm ${
+        className={`w-10 text-right font-mono text-xs sm:text-sm ${
           isNull ? 'text-fg-muted' : isPassing ? 'text-pass' : 'text-fail'
         }`}
       >
@@ -198,13 +207,14 @@ export default function EvalReport({ report, compact = false }: EvalReportProps)
         </div>
       ) : (
         /* Metric bars */
-        <div className="flex flex-col gap-2.5">
-          {METRIC_ORDER.map((key) => (
+        <div className="flex flex-col gap-2 sm:gap-2.5">
+          {METRIC_ORDER.map((key, index) => (
             <MetricBar
               key={key}
               metricKey={key}
               score={report.scores[key] ?? null}
               threshold={report.threshold}
+              index={index}
             />
           ))}
         </div>

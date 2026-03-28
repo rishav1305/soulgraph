@@ -13,7 +13,7 @@
  *   - aria-expanded on collapsible sidebar
  */
 
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 interface LayoutProps {
   /** Sidebar content (SessionSidebar component) */
@@ -26,6 +26,7 @@ interface LayoutProps {
 
 export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
@@ -33,7 +34,23 @@ export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
+    // Return focus to toggle button when closing
+    sidebarToggleRef.current?.focus();
   }, []);
+
+  // Escape key closes mobile sidebar
+  useEffect(() => {
+    if (!sidebarOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen, closeSidebar]);
 
   return (
     <div data-testid="layout-root" className="h-screen flex flex-col bg-deep text-fg overflow-hidden">
@@ -51,12 +68,14 @@ export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
         className="md:hidden flex items-center h-12 px-4 bg-surface border-b border-border-default shrink-0"
       >
         <button
+          ref={sidebarToggleRef}
           type="button"
           data-testid="layout-sidebar-toggle"
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           aria-expanded={sidebarOpen}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-fg-secondary hover:text-fg hover:bg-elevated transition-colors cursor-pointer"
+          aria-controls="layout-sidebar-nav"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-fg-secondary hover:text-fg hover:bg-elevated transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-soul"
         >
           {sidebarOpen ? (
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -89,6 +108,7 @@ export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
         )}
 
         <nav
+          id="layout-sidebar-nav"
           data-testid="layout-sidebar"
           role="navigation"
           aria-label="Session navigation"

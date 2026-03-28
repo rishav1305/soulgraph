@@ -12,17 +12,21 @@
  * Layout:
  *   ┌──────────┬──────────────────┬──────────────────┐
  *   │ Sidebar  │  ChatInterface   │  GraphViz        │
- *   │ Sessions │  (msg list +     │  TunerDashboard  │
- *   │          │   query input)   │  EvalReport      │
+ *   │ Sessions │  (msg list +     │  EvalReport      │
+ *   │          │   query input)   │  DocumentViewer   │
+ *   │          │                  │  TunerDashboard  │
  *   └──────────┴──────────────────┴──────────────────┘
  */
 
 import Layout from '@/components/Layout';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import GraphViz from '@/components/GraphViz';
 import TunerDashboard from '@/components/TunerDashboard';
 import EvalReport from '@/components/EvalReport';
+import DocumentViewer from '@/components/DocumentViewer';
 import ChatInterface from '@/components/ChatInterface';
 import SessionSidebar from '@/components/SessionSidebar';
+import { TunerSkeleton, EvalSkeleton } from '@/components/Skeleton';
 import { useGraph } from '@/hooks/useGraph';
 import { useSessions } from '@/hooks/useSessions';
 import { useTuner } from '@/hooks/useTuner';
@@ -49,23 +53,25 @@ export default function App() {
   } = useGraph(activeSessionId);
 
   // ── Tuner state ──
-  const { status: tunerStatus, reset: tunerReset } = useTuner();
+  const { status: tunerStatus, loading: tunerLoading, reset: tunerReset } = useTuner();
 
-  // ── Find the latest eval report (from most recent assistant message) ──
-  const latestEval = [...messages]
-    .reverse()
-    .find((m) => m.evalReport)?.evalReport ?? null;
+  // ── Find the latest eval report + documents (from most recent assistant message) ──
+  const latestAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+  const latestEval = latestAssistant?.evalReport ?? null;
+  const latestDocs = latestAssistant?.documents ?? [];
 
   return (
     <Layout
       sidebar={
-        <SessionSidebar
-          sessions={sessions}
-          activeSessionId={activeSessionId}
-          onSelect={setActiveSession}
-          onNew={createSession}
-          onDelete={deleteSession}
-        />
+        <ErrorBoundary name="sidebar" compact>
+          <SessionSidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelect={setActiveSession}
+            onNew={createSession}
+            onDelete={deleteSession}
+          />
+        </ErrorBoundary>
       }
       rightPanel={
         <div className="flex flex-col gap-4 p-4">
@@ -88,28 +94,47 @@ export default function App() {
             <span className="font-mono capitalize">{connectionStatus}</span>
           </div>
 
-          {/* Agent graph visualization */}
-          <div>
-            <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
-              Agent Flow
-            </h3>
-            <GraphViz state={graphState} className="h-48" />
-          </div>
-
-          {/* Latest eval report */}
-          {latestEval && (
+          {/* Agent graph visualization + eval report */}
+          <ErrorBoundary name="visualization">
             <div>
               <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
-                Latest Evaluation
+                Agent Flow
               </h3>
-              <EvalReport report={latestEval} />
+              <GraphViz state={graphState} className="h-48" />
             </div>
+
+            {latestEval ? (
+              <div className="mt-4">
+                <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
+                  Latest Evaluation
+                </h3>
+                <EvalReport report={latestEval} />
+              </div>
+            ) : streaming ? (
+              <div className="mt-4">
+                <h3 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
+                  Latest Evaluation
+                </h3>
+                <EvalSkeleton />
+              </div>
+            ) : null}
+          </ErrorBoundary>
+
+          {/* Retrieved documents */}
+          {latestDocs.length > 0 && (
+            <ErrorBoundary name="documents" compact>
+              <DocumentViewer documents={latestDocs} />
+            </ErrorBoundary>
           )}
 
           {/* Tuner dashboard */}
-          {tunerStatus && (
-            <TunerDashboard status={tunerStatus} onReset={tunerReset} />
-          )}
+          {tunerStatus ? (
+            <ErrorBoundary name="tuner" compact>
+              <TunerDashboard status={tunerStatus} onReset={tunerReset} />
+            </ErrorBoundary>
+          ) : tunerLoading ? (
+            <TunerSkeleton />
+          ) : null}
         </div>
       }
     >
@@ -126,12 +151,14 @@ export default function App() {
           </div>
         )}
 
-        <ChatInterface
-          messages={messages}
-          streaming={streaming}
-          onSend={send}
-          onCancel={cancel}
-        />
+        <ErrorBoundary name="chat">
+          <ChatInterface
+            messages={messages}
+            streaming={streaming}
+            onSend={send}
+            onCancel={cancel}
+          />
+        </ErrorBoundary>
       </div>
     </Layout>
   );

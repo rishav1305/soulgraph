@@ -76,7 +76,7 @@ export default function QueryInput({ onSend, streaming, onCancel }: QueryInputPr
             data-testid="query-input-cancel"
             onClick={onCancel}
             aria-label="Cancel streaming"
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-fail/15 text-fail hover:bg-fail/25 transition-colors cursor-pointer shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-fail/15 text-fail hover:bg-fail/25 transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fail"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 4l8 8M12 4l-8 8" />
@@ -89,7 +89,7 @@ export default function QueryInput({ onSend, streaming, onCancel }: QueryInputPr
             onClick={handleSubmit}
             disabled={!input.trim()}
             aria-label="Send question"
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-soul text-deep hover:bg-soul/85 transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-soul text-deep hover:bg-soul/85 transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-soul"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M3 8l4-4v3h6v2H7v3L3 8z" />

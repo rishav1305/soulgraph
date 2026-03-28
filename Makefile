@@ -1,7 +1,22 @@
-.PHONY: ci lint type test infra-up infra-down clean install
+.PHONY: ci lint type test web-ci web-typecheck web-test web-build infra-up infra-down clean install
 
 # Full CI check — matches what GitHub Actions runs.
 ci: lint type test
+
+# ─── Web UI CI ────────────────────────────────────────────────
+# Runs: TypeScript strict check → Vitest unit/integration tests → Vite production build.
+# Fail-fast: any step failure stops the pipeline.
+web-ci: web-typecheck web-test web-build
+	@echo "Web CI passed."
+
+web-typecheck:
+	cd web && npx tsc --noEmit
+
+web-test:
+	cd web && npx vitest run
+
+web-build:
+	cd web && npx vite build
 
 install:
 	pip install -e ".[dev]"

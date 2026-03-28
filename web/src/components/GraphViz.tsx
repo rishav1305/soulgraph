@@ -552,7 +552,7 @@ export default function GraphViz({ state, className = '' }: GraphVizProps) {
       {state.intent && (
         <div
           data-testid="graph-intent"
-          className="mt-2 text-center text-xs text-fg-muted font-mono truncate px-4 animate-fade-in"
+          className="mt-1 sm:mt-2 text-center text-[10px] sm:text-xs text-fg-muted font-mono line-clamp-2 sm:truncate px-2 sm:px-4 animate-fade-in"
         >
           {state.intent}
         </div>

@@ -24,9 +24,10 @@ export interface QueryMessage {
   session_id: string;
 }
 
-/** Server → Client: one of four message types streamed back. */
+/** Server → Client: one of five message types streamed back. */
 export type WSMessage =
   | { type: 'token'; content: string }
+  | { type: 'documents'; documents: string[] }
   | { type: 'eval'; report: EvalReport }
   | { type: 'done'; answer: string }
   | { type: 'error'; message: string };
@@ -135,6 +136,8 @@ export interface ChatMessage {
   timestamp: string;
   evalReport?: EvalReport;
   graphState?: GraphState;
+  /** RAG-retrieved documents (from ChromaDB via the documents WS message). */
+  documents?: string[];
 }
 
 // ─────────────────────────────────────────────────────────────

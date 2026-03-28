@@ -79,6 +79,8 @@ function HistoryChart({
   history: EvalHistoryEntry[];
   threshold: number;
 }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
   const paths = useMemo(() => {
     if (history.length === 0) return [];
 
@@ -195,6 +197,130 @@ function HistoryChart({
             />
           ),
       )}
+
+      {/* Hover hit zones — invisible rects per eval column */}
+      {history.length > 0 &&
+        history.map((_, i) => {
+          const n = history.length;
+          const xStep = n > 1 ? PLOT_W / (n - 1) : PLOT_W / 2;
+          const x = CHART_PAD.left + i * xStep;
+          const halfStep = n > 1 ? xStep / 2 : PLOT_W / 4;
+          return (
+            <rect
+              key={`hover-${i}`}
+              x={x - halfStep}
+              y={CHART_PAD.top}
+              width={halfStep * 2}
+              height={PLOT_H}
+              fill="transparent"
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              className="cursor-crosshair"
+            />
+          );
+        })}
+
+      {/* Vertical guide line on hover */}
+      {hoveredIndex !== null && (() => {
+        const n = history.length;
+        const xStep = n > 1 ? PLOT_W / (n - 1) : PLOT_W / 2;
+        const x = CHART_PAD.left + hoveredIndex * xStep;
+        return (
+          <line
+            x1={x}
+            y1={CHART_PAD.top}
+            x2={x}
+            y2={CHART_PAD.top + PLOT_H}
+            stroke="var(--color-fg-muted)"
+            strokeWidth="0.5"
+            strokeDasharray="2 2"
+            opacity="0.5"
+            pointerEvents="none"
+          />
+        );
+      })()}
+
+      {/* Data point dots on hover */}
+      {hoveredIndex !== null &&
+        METRIC_LINES.map(({ key, color }) => {
+          const entry = history[hoveredIndex];
+          const val = entry?.[key];
+          if (val === null || val === undefined) return null;
+          const n = history.length;
+          const xStep = n > 1 ? PLOT_W / (n - 1) : PLOT_W / 2;
+          const cx = CHART_PAD.left + hoveredIndex * xStep;
+          const cy = CHART_PAD.top + PLOT_H * (1 - val);
+          return (
+            <circle
+              key={`dot-${key}`}
+              cx={cx}
+              cy={cy}
+              r="3"
+              fill={color}
+              stroke="var(--color-deep)"
+              strokeWidth="1.5"
+              pointerEvents="none"
+            />
+          );
+        })}
+
+      {/* Tooltip on hover */}
+      {hoveredIndex !== null && (() => {
+        const entry = history[hoveredIndex];
+        if (!entry) return null;
+        const n = history.length;
+        const xStep = n > 1 ? PLOT_W / (n - 1) : PLOT_W / 2;
+        const rawX = CHART_PAD.left + hoveredIndex * xStep;
+        // Flip tooltip to left side if too close to right edge
+        const tooltipW = 100;
+        const tooltipH = 62;
+        const flipLeft = rawX + tooltipW + 8 > CHART_W;
+        const tx = flipLeft ? rawX - tooltipW - 8 : rawX + 8;
+        const ty = CHART_PAD.top + 4;
+
+        return (
+          <g pointerEvents="none" data-testid="tuner-tooltip" role="tooltip" aria-label={`Eval ${hoveredIndex + 1} metrics`}>
+            <rect
+              x={tx}
+              y={ty}
+              width={tooltipW}
+              height={tooltipH}
+              rx="4"
+              fill="var(--color-surface)"
+              stroke="var(--color-border-default)"
+              strokeWidth="0.5"
+              opacity="0.95"
+            />
+            <text
+              x={tx + 6}
+              y={ty + 11}
+              fill="var(--color-fg)"
+              fontSize="7"
+              fontFamily="var(--font-mono)"
+              fontWeight="600"
+            >
+              Eval #{hoveredIndex + 1}
+            </text>
+            {METRIC_LINES.map(({ key, color, label }, mi) => {
+              const val = entry[key];
+              return (
+                <g key={key}>
+                  <circle cx={tx + 8} cy={ty + 22 + mi * 10} r="2" fill={color} />
+                  <text
+                    x={tx + 14}
+                    y={ty + 24 + mi * 10}
+                    fill="var(--color-fg-secondary)"
+                    fontSize="6.5"
+                    fontFamily="var(--font-mono)"
+                  >
+                    {label}: {val !== null && val !== undefined ? val.toFixed(2) : 'N/A'}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })()}
     </svg>
   );
 }

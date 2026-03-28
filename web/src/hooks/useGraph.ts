@@ -59,7 +59,7 @@ export function useGraph(sessionId: string): UseGraphReturn {
   const updateAssistantMessage = useCallback(
     (
       update: Partial<
-        Pick<ChatMessage, 'content' | 'evalReport' | 'graphState'>
+        Pick<ChatMessage, 'content' | 'evalReport' | 'graphState' | 'documents'>
       >,
     ) => {
       const id = assistantIdRef.current;
@@ -107,6 +107,11 @@ export function useGraph(sessionId: string): UseGraphReturn {
             ...prev,
             activeNode: 'rag',
           }));
+          break;
+        }
+
+        case 'documents': {
+          updateAssistantMessage({ documents: msg.documents });
           break;
         }
 

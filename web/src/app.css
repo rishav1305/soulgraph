@@ -64,6 +64,18 @@ body {
   font-family: var(--font-body);
 }
 
+/* ── Focus rings — keyboard nav only (focus-visible) ── */
+
+:focus-visible {
+  outline: 2px solid var(--color-soul);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse clicks */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Scrollbar (webkit) ── */
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

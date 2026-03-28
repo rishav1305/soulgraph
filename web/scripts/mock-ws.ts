@@ -229,6 +229,22 @@ wss.on('connection', (ws: WebSocket) => {
 
       const answer = getAnswer(question);
 
+      // Send retrieved documents (before tokens — RAG retrieval phase)
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: 'documents',
+            documents: [
+              'Retrieval-Augmented Generation (RAG) combines information retrieval with text generation. A retriever fetches relevant passages from a knowledge base, which are then used as context for a language model to generate grounded answers.',
+              'Multi-hop reasoning requires following chains of evidence across multiple documents. Systems like HotpotQA benchmark this capability by requiring answers that synthesize information from two or more Wikipedia articles.',
+              'ChromaDB is an open-source embedding database designed for AI applications. It stores document embeddings and supports similarity search, making it ideal for RAG pipelines that need fast nearest-neighbor retrieval.',
+              'RAGAS (Retrieval Augmented Generation Assessment) provides metrics for evaluating RAG systems: faithfulness measures hallucination, answer relevancy measures topicality, context precision measures retrieval quality, and context recall measures completeness.',
+            ],
+          }),
+        );
+        await sleep(100); // Small delay to simulate retrieval
+      }
+
       // Stream tokens word-by-word
       const words = answer.split(' ');
       for (const word of words) {
