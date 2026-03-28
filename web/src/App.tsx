@@ -53,7 +53,7 @@ export default function App() {
   } = useGraph(activeSessionId);
 
   // ── Tuner state ──
-  const { status: tunerStatus, loading: tunerLoading, reset: tunerReset } = useTuner();
+  const { status: tunerStatus, loading: tunerLoading, error: tunerError, reset: tunerReset } = useTuner();
 
   // ── Find the latest eval report + documents (from most recent assistant message) ──
   const latestAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
@@ -134,6 +134,14 @@ export default function App() {
             </ErrorBoundary>
           ) : tunerLoading ? (
             <TunerSkeleton />
+          ) : tunerError ? (
+            <div
+              data-testid="tuner-error"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-fail/5 border border-fail/20 text-fail text-xs"
+              role="alert"
+            >
+              <span className="truncate">Tuner: {tunerError}</span>
+            </div>
           ) : null}
         </div>
       }

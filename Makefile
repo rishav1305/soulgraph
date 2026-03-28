@@ -1,4 +1,4 @@
-.PHONY: ci lint type test web-ci web-typecheck web-test web-build infra-up infra-down clean install
+.PHONY: ci lint type test web-ci web-typecheck web-test web-build infra-up infra-down clean install install-hooks pre-commit
 
 # Full CI check — matches what GitHub Actions runs.
 ci: lint type test
@@ -20,6 +20,16 @@ web-build:
 
 install:
 	pip install -e ".[dev]"
+
+# ─── Git Hooks ────────────────────────────────────────────────
+# Install the pre-commit hook — enforces ruff lint/format + tsc before every commit.
+install-hooks:
+	ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
+	@echo "Pre-commit hook installed."
+
+# Run pre-commit checks manually (same as what the hook runs).
+pre-commit:
+	@bash scripts/pre-commit
 
 # Linting with ruff.
 lint:

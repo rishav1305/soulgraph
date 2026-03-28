@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from typing import Any
 
 # Default number of documents the RAG agent retrieves per query.
 DEFAULT_RAG_K: int = 4
@@ -25,12 +26,12 @@ class TuningParams:
     eval_threshold: float = 0.7
     prefer_reasoning_model: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         """Serialise to a plain dict (JSON-safe)."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> TuningParams:
+    def from_dict(cls, data: dict[str, Any]) -> TuningParams:
         """Deserialise from a plain dict."""
         return cls(
             rag_k=int(data.get("rag_k", DEFAULT_RAG_K)),

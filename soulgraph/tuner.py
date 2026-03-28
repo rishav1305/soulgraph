@@ -66,7 +66,7 @@ class AgentTuner:
         self._window = window
         self._redis = redis_client
         self._params = TuningParams()
-        self._history: deque[dict] = deque(maxlen=window)
+        self._history: deque[dict[str, Any]] = deque(maxlen=window)
         self._adjustments: list[str] = []
 
         if self._redis is not None:
@@ -105,7 +105,7 @@ class AgentTuner:
         """Return the current tuning parameters."""
         return self._params
 
-    def get_history(self) -> list[dict]:
+    def get_history(self) -> list[dict[str, Any]]:
         """Return eval history as a list (newest last)."""
         return list(self._history)
 
@@ -114,10 +114,11 @@ class AgentTuner:
         self._params = TuningParams()
         self._history.clear()
         self._adjustments.clear()
-        if self._redis is not None:
-            self._redis.delete(_REDIS_KEY_PARAMS)
-            self._redis.delete(_REDIS_KEY_HISTORY)
-            self._redis.delete(_REDIS_KEY_ADJUSTMENTS)
+        redis = self._redis
+        if redis is not None:
+            redis.delete(_REDIS_KEY_PARAMS)
+            redis.delete(_REDIS_KEY_HISTORY)
+            redis.delete(_REDIS_KEY_ADJUSTMENTS)
         logger.info("AgentTuner: reset to defaults")
 
     def status(self) -> dict[str, Any]:
@@ -142,7 +143,7 @@ class AgentTuner:
         self._rule_relevancy_low(history)
         self._rule_recovery(history)
 
-    def _rule_faithfulness_low(self, history: list[dict]) -> None:
+    def _rule_faithfulness_low(self, history: list[dict[str, Any]]) -> None:
         """Increase rag_k when faithfulness is consistently low."""
         recent = history[-_FAILURE_TRIGGER:]
         if len(recent) < _FAILURE_TRIGGER:
@@ -159,7 +160,7 @@ class AgentTuner:
             self._adjustments.append(msg)
             logger.info("AgentTuner adjustment: %s", msg)
 
-    def _rule_relevancy_low(self, history: list[dict]) -> None:
+    def _rule_relevancy_low(self, history: list[dict[str, Any]]) -> None:
         """Switch to reasoning model when answer_relevancy is consistently low."""
         recent = history[-_FAILURE_TRIGGER:]
         if len(recent) < _FAILURE_TRIGGER:
@@ -175,7 +176,7 @@ class AgentTuner:
             self._adjustments.append(msg)
             logger.info("AgentTuner adjustment: %s", msg)
 
-    def _rule_recovery(self, history: list[dict]) -> None:
+    def _rule_recovery(self, history: list[dict[str, Any]]) -> None:
         """Relax parameters when performance is consistently good."""
         recent = history[-_RECOVERY_TRIGGER:]
         if len(recent) < _RECOVERY_TRIGGER:
@@ -208,28 +209,34 @@ class AgentTuner:
     # ------------------------------------------------------------------
 
     def _load_from_redis(self) -> None:
+        redis = self._redis
+        if redis is None:
+            return
         try:
-            raw = self._redis.get(_REDIS_KEY_PARAMS)
+            raw = redis.get(_REDIS_KEY_PARAMS)
             if raw:
                 self._params = TuningParams.from_dict(json.loads(raw))
-            history_raw = self._redis.lrange(_REDIS_KEY_HISTORY, 0, -1)
+            history_raw = redis.lrange(_REDIS_KEY_HISTORY, 0, -1)
             for item in history_raw:
                 self._history.append(json.loads(item))
-            adjustments_raw = self._redis.lrange(_REDIS_KEY_ADJUSTMENTS, 0, -1)
-            for item in adjustments_raw:
-                self._adjustments.append(item.decode() if isinstance(item, bytes) else item)
+            adjustments_raw = redis.lrange(_REDIS_KEY_ADJUSTMENTS, 0, -1)
+            for adj in adjustments_raw:
+                self._adjustments.append(adj.decode() if isinstance(adj, bytes) else adj)
         except Exception as exc:
             logger.warning("AgentTuner: failed to load from Redis (%s) — using defaults", exc)
 
     def _save_to_redis(self) -> None:
+        redis = self._redis
+        if redis is None:
+            return
         try:
-            self._redis.set(_REDIS_KEY_PARAMS, json.dumps(self._params.to_dict()))
-            self._redis.delete(_REDIS_KEY_HISTORY)
+            redis.set(_REDIS_KEY_PARAMS, json.dumps(self._params.to_dict()))
+            redis.delete(_REDIS_KEY_HISTORY)
             for item in self._history:
-                self._redis.rpush(_REDIS_KEY_HISTORY, json.dumps(item))
-            self._redis.delete(_REDIS_KEY_ADJUSTMENTS)
-            for item in self._adjustments:
-                self._redis.rpush(_REDIS_KEY_ADJUSTMENTS, item)
+                redis.rpush(_REDIS_KEY_HISTORY, json.dumps(item))
+            redis.delete(_REDIS_KEY_ADJUSTMENTS)
+            for adj in self._adjustments:
+                redis.rpush(_REDIS_KEY_ADJUSTMENTS, adj)
         except Exception as exc:
             logger.warning("AgentTuner: failed to save to Redis (%s) — params in-memory only", exc)
 

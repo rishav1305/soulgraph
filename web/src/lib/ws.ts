@@ -6,7 +6,8 @@
  *
  * Protocol (matches soulgraph/api.py /ws/query):
  *   Client → Server: { question: string, session_id: string }
- *   Server → Client: { type: 'token', content: string }  (one per word)
+ *   Server → Client: { type: 'documents', documents: string[] }  (retrieved docs)
+ *                     { type: 'token', content: string }  (one per word)
  *                     { type: 'eval',  report: EvalReport }
  *                     { type: 'done',  answer: string }
  *                     { type: 'error', message: string }

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# SoulGraph pre-commit hook — enforces code quality before every commit.
+#
+# Checks:
+#   1. ruff check (lint)
+#   2. ruff format --check (formatting)
+#   3. tsc --noEmit (TypeScript, if web/node_modules exists)
+#
+# Install: make install-hooks
+# Or manually: ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PASS=0
+FAIL=0
+
+check() {
+  local name="$1"
+  shift
+  printf "  %-30s" "$name"
+  if "$@" >/dev/null 2>&1; then
+    echo -e "${GREEN}PASS${NC}"
+    PASS=$((PASS + 1))
+  else
+    echo -e "${RED}FAIL${NC}"
+    # Re-run to show the actual errors
+    "$@" 2>&1 | head -30
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+echo ""
+echo "SoulGraph pre-commit checks:"
+echo ""
+
+# ── Python checks ──
+if command -v ruff >/dev/null 2>&1; then
+  check "ruff check" ruff check "$REPO_ROOT/soulgraph/" "$REPO_ROOT/tests/"
+  check "ruff format" ruff format --check "$REPO_ROOT/soulgraph/" "$REPO_ROOT/tests/"
+else
+  echo -e "  ${YELLOW}SKIP${NC} ruff not found (pip install ruff)"
+fi
+
+# ── Web checks (only if node_modules exists) ──
+if [ -d "$REPO_ROOT/web/node_modules" ]; then
+  check "tsc --noEmit" bash -c "cd '$REPO_ROOT/web' && npx tsc --noEmit"
+else
+  echo -e "  ${YELLOW}SKIP${NC} web/node_modules not found (cd web && npm install)"
+fi
+
+echo ""
+
+if [ "$FAIL" -gt 0 ]; then
+  echo -e "${RED}$FAIL check(s) failed. Commit blocked.${NC}"
+  echo "Run 'ruff check --fix soulgraph/ tests/ && ruff format soulgraph/ tests/' to auto-fix."
+  exit 1
+fi
+
+echo -e "${GREEN}All $PASS checks passed.${NC}"
+echo ""
