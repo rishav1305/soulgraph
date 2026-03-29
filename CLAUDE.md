@@ -153,6 +153,7 @@ CLAUDE.md               This file
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ANTHROPIC_API_KEY` | Yes | Claude API key |
+| `OPENAI_API_KEY` | No | OpenAI key — required for RAGAS evaluator metrics |
 | `REDIS_URL` | No (default: redis://localhost:6379) | Redis connection |
 | `CHROMA_HOST` | No (default: localhost) | ChromaDB host |
 | `CHROMA_PORT` | No (default: 8001) | ChromaDB port |

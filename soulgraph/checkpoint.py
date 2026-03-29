@@ -29,7 +29,14 @@ def _connect(redis_url: str) -> Any:
         client.close()
 
     # Instantiate directly — NOT via from_conn_string() which is a @contextmanager.
-    return RedisSaver(redis_url=redis_url)
+    saver = RedisSaver(redis_url=redis_url)
+
+    # Create RediSearch indices (checkpoint_write, checkpoint_blobs, etc.)
+    # on first use. This is idempotent — safe to call on every startup.
+    # Without this, queries fail with "No such index checkpoint_write".
+    saver.setup()
+
+    return saver
 
 
 def get_checkpointer(redis_url: str) -> Any | None:
