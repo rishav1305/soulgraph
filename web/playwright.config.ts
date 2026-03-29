@@ -51,6 +51,11 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
       testMatch: /responsive\.spec\.ts/,
     },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testIgnore: /responsive\.spec\.ts/,
+    },
   ],
 
   /*
