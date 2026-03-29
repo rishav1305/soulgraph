@@ -253,14 +253,14 @@ ls -lh web/dist/assets/
 # ~120KB gzip total (budget was 300KB)
 
 # Test count
-# 256+ unit/integration tests + 64 E2E Playwright specs
+# 301 unit/integration tests + 63 E2E Playwright specs + 148 backend
 ```
 
 **Talking points:**
 
-- "Four containers. 120KB frontend bundle — under half the budget. 320+ tests. Zero external runtime dependencies."
+- "Four containers. 120KB frontend bundle — 40% under budget. 512 tests across the full stack. Zero external runtime dependencies."
 - "The stack runs on a single machine or scales horizontally. Redis handles pub/sub and checkpointing. ChromaDB is the vector store. LangFuse provides full observability traces."
-- "Built in 4 days by a team of AI agents coordinated by a single developer."
+- "Built in 5 days by a team of AI agents coordinated by a single developer."
 
 ---
 
@@ -277,19 +277,19 @@ Test Pyramid:
   │   68 Integration │  Hooks: useGraph (29), useTuner (9), useSessions (13)
   │  (Vitest + RTL)  │  + component integration (17)
   ├──────────────────┤
-  │  188 Unit Tests  │  8 components × 14-31 tests each
+  │  233 Unit Tests  │  8 components + smoke/factory tests
   │  (Vitest + RTL)  │  Data-testid selectors, typed factories, MockWebSocket
   └──────────────────┘
-  Total: 319 frontend tests
-  Backend: 91 tests, 91% coverage (pytest)
-  Grand total: 410 tests
+  Total: 364 frontend tests
+  Backend: 148 tests, 86% coverage (pytest)
+  Grand total: 512 tests
 ```
 
 **Talking points:**
 
-- "319 frontend tests across three layers. Every component, every hook, every user flow."
+- "364 frontend tests across three layers. Every component, every hook, every user flow."
 - "The E2E suite runs against a mock WebSocket server for deterministic results, then against the real Docker stack for integration confidence. Both pass."
-- "Bundle size: 119KB gzip — 40% under the 200KB budget. First WebSocket token: 142ms — under the 200ms threshold. Accessibility score: 96/100. Zero cumulative layout shift."
+- "Bundle size: 119KB gzip — 40% under the 200KB budget. First WebSocket token: 142ms — under the 200ms threshold. Accessibility score: 96/100. Zero cumulative layout shift. 512 tests across the full stack."
 - "We don't self-report success. Every number comes from machine output — Playwright, Vitest, Lighthouse, `vite build`. The CI pipeline (`make web-ci`) runs typecheck → unit tests → production build on every commit."
 
 > **If audience asks about testing philosophy:**
@@ -328,12 +328,12 @@ If the live backend is unavailable, use the mock server. These questions work we
 | Frontend bundle size | 119.55KB gzip (budget: 200KB) — 40% under |
 | First contentful paint | <200ms (vite dev) |
 | WebSocket first token | 142ms (measured, target: <200ms) |
-| Frontend unit tests | 188 (8 components, Vitest + RTL) |
+| Frontend unit tests | 233 (8 components + smoke/factory, Vitest + RTL) |
 | Frontend integration tests | 68 (3 hooks + component integration) |
 | E2E Playwright tests | 63 (6 specs: chat, sessions, tuner, graph, errors, responsive) |
-| Frontend total | 319 tests |
-| Backend tests | 91 tests, 91% coverage (pytest) |
-| **Grand total** | **410 tests** |
+| Frontend total | 364 tests |
+| Backend tests | 148 tests, 86% coverage (pytest) |
+| **Grand total** | **512 tests** |
 | Accessibility (Lighthouse) | 96/100 |
 | Best Practices (Lighthouse) | 96/100 |
 | Cumulative Layout Shift | 0 |
