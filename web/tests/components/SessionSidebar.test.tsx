@@ -242,3 +242,84 @@ describe('SessionSidebar — Edge Cases', () => {
     expect(item).not.toHaveAttribute('aria-current');
   });
 });
+
+// ─── timeAgo branches ────────────────────────────────────────
+
+describe('SessionSidebar — timeAgo display', () => {
+  it('shows "just now" for session created < 1 min ago', () => {
+    resetFactoryCounters();
+    const session = createSession({ created_at: new Date().toISOString() });
+    renderSidebar([session]);
+    expect(screen.getByTestId(`session-time-${session.id}`)).toHaveTextContent('just now');
+  });
+
+  it('shows minutes for session created minutes ago', () => {
+    resetFactoryCounters();
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const session = createSession({ created_at: fiveMinAgo });
+    renderSidebar([session]);
+    expect(screen.getByTestId(`session-time-${session.id}`)).toHaveTextContent('5m ago');
+  });
+
+  it('shows hours for session created hours ago', () => {
+    resetFactoryCounters();
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const session = createSession({ created_at: twoHoursAgo });
+    renderSidebar([session]);
+    expect(screen.getByTestId(`session-time-${session.id}`)).toHaveTextContent('2h ago');
+  });
+
+  it('shows days for session created days ago', () => {
+    resetFactoryCounters();
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const session = createSession({ created_at: threeDaysAgo });
+    renderSidebar([session]);
+    expect(screen.getByTestId(`session-time-${session.id}`)).toHaveTextContent('3d ago');
+  });
+});
+
+// ─── Keyboard Navigation ─────────────────────────────────────
+
+describe('SessionSidebar — Keyboard Interactions', () => {
+  it('calls onDelete when Enter pressed on delete button', () => {
+    resetFactoryCounters();
+    const onDelete = vi.fn();
+    const session = createSession();
+    renderSidebar([session], '', vi.fn(), vi.fn(), onDelete);
+
+    fireEvent.keyDown(screen.getByTestId(`session-delete-${session.id}`), { key: 'Enter' });
+    expect(onDelete).toHaveBeenCalledWith(session.id);
+  });
+
+  it('calls onDelete when Space pressed on delete button', () => {
+    resetFactoryCounters();
+    const onDelete = vi.fn();
+    const session = createSession();
+    renderSidebar([session], '', vi.fn(), vi.fn(), onDelete);
+
+    fireEvent.keyDown(screen.getByTestId(`session-delete-${session.id}`), { key: ' ' });
+    expect(onDelete).toHaveBeenCalledWith(session.id);
+  });
+
+  it('does not call onDelete for other keys on delete button', () => {
+    resetFactoryCounters();
+    const onDelete = vi.fn();
+    const session = createSession();
+    renderSidebar([session], '', vi.fn(), vi.fn(), onDelete);
+
+    fireEvent.keyDown(screen.getByTestId(`session-delete-${session.id}`), { key: 'Tab' });
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('keyboard delete does not trigger onSelect (stopPropagation)', () => {
+    resetFactoryCounters();
+    const onSelect = vi.fn();
+    const onDelete = vi.fn();
+    const session = createSession();
+    renderSidebar([session], '', onSelect, vi.fn(), onDelete);
+
+    fireEvent.keyDown(screen.getByTestId(`session-delete-${session.id}`), { key: 'Enter' });
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});
