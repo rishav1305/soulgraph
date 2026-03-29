@@ -152,6 +152,7 @@ export default function Layout({ sidebar, children, rightPanel }: LayoutProps) {
           data-testid="layout-main"
           className="flex-1 flex flex-col lg:flex-row min-h-0 min-w-0 overflow-hidden"
         >
+          <h1 className="sr-only">SoulGraph — Multi-Agent RAG System</h1>
           {/* Primary content (ChatInterface) */}
           <div data-testid="layout-content" className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
             {children}

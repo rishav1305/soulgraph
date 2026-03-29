@@ -79,6 +79,7 @@ function EvalReportCompact({ report }: EvalReportProps) {
     >
       <span
         data-testid="eval-badge"
+        role="status"
         className={`font-mono font-semibold ${badge.textClass}`}
       >
         {badge.label}
@@ -185,6 +186,7 @@ export default function EvalReport({ report, compact = false }: EvalReportProps)
         <div className="flex items-center gap-3">
           <span
             data-testid="eval-badge"
+            role="status"
             className={`inline-flex items-center rounded-md border px-2.5 py-0.5 font-mono text-xs font-bold ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
           >
             {badge.label}

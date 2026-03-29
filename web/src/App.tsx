@@ -78,6 +78,8 @@ export default function App() {
           {/* Connection status indicator */}
           <div
             data-testid="connection-status"
+            role="status"
+            aria-live="polite"
             className="flex items-center gap-2 text-xs text-fg-muted"
           >
             <div
