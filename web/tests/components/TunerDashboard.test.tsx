@@ -289,6 +289,158 @@ describe('TunerDashboard — Reset Button', () => {
   });
 });
 
+// ─── Hover Interactions ──────────────────────────────────────
+
+describe('TunerDashboard — Chart Hover Interactions', () => {
+  function renderWithHistory(count = 3) {
+    const status = createTunerStatusWithHistory(count);
+    return render(<TunerDashboard status={status} onReset={vi.fn()} />);
+  }
+
+  it('shows no tooltip initially (no hover)', () => {
+    renderWithHistory();
+    expect(screen.queryByTestId('tuner-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('shows tooltip on hover over a chart column', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    // Hover zones are transparent rects — find them by cursor-crosshair class
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+    expect(hoverZones.length).toBe(3);
+
+    // Hover over first zone
+    fireEvent.mouseEnter(hoverZones[0]!);
+    expect(screen.getByTestId('tuner-tooltip')).toBeInTheDocument();
+  });
+
+  it('tooltip has correct aria-label for hovered eval', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    // Hover over second zone (index 1 → "Eval 2 metrics")
+    fireEvent.mouseEnter(hoverZones[1]!);
+    const tooltip = screen.getByTestId('tuner-tooltip');
+    expect(tooltip).toHaveAttribute('aria-label', 'Eval 2 metrics');
+  });
+
+  it('tooltip has role="tooltip"', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+    const tooltip = screen.getByTestId('tuner-tooltip');
+    expect(tooltip).toHaveAttribute('role', 'tooltip');
+  });
+
+  it('tooltip disappears on mouse leave', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+    expect(screen.getByTestId('tuner-tooltip')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(hoverZones[0]!);
+    expect(screen.queryByTestId('tuner-tooltip')).not.toBeInTheDocument();
+  });
+
+  it('renders data point dots on hover', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    // Before hover — verify no tooltip circles present
+    expect(chart.querySelectorAll('circle[pointer-events="none"]').length).toBe(0);
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+
+    // After hover — should have 4 metric dots (faithfulness, relevancy, precision, recall)
+    // Plus the tooltip metric indicator circles (4 more inside tooltip)
+    // The data point dots have pointerEvents="none" and are direct children of SVG
+    const dotsAfter = chart.querySelectorAll('circle');
+    expect(dotsAfter.length).toBeGreaterThan(0);
+  });
+
+  it('renders vertical guide line on hover', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    // Count lines before hover
+    const linesBefore = chart.querySelectorAll('line[pointer-events="none"]');
+    const countBefore = linesBefore.length;
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+
+    // After hover — should have additional guide line with pointerEvents="none"
+    const linesAfter = chart.querySelectorAll('line[pointer-events="none"]');
+    expect(linesAfter.length).toBeGreaterThan(countBefore);
+  });
+
+  it('hovering last column near right edge shows tooltip', () => {
+    // With enough entries, the last column is near the right edge
+    // and the tooltip should flip to the left
+    renderWithHistory(5);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    // Hover over last zone (index 4 — rightmost)
+    fireEvent.mouseEnter(hoverZones[hoverZones.length - 1]!);
+    const tooltip = screen.getByTestId('tuner-tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveAttribute('aria-label', `Eval ${hoverZones.length} metrics`);
+  });
+
+  it('switching hover between columns updates tooltip', () => {
+    renderWithHistory(3);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    // Hover first column
+    fireEvent.mouseEnter(hoverZones[0]!);
+    expect(screen.getByTestId('tuner-tooltip')).toHaveAttribute('aria-label', 'Eval 1 metrics');
+
+    // Move to second column
+    fireEvent.mouseLeave(hoverZones[0]!);
+    fireEvent.mouseEnter(hoverZones[1]!);
+    expect(screen.getByTestId('tuner-tooltip')).toHaveAttribute('aria-label', 'Eval 2 metrics');
+  });
+
+  it('handles hover with null metric values gracefully', () => {
+    const status = createTunerStatus({
+      history: [
+        createEvalHistoryEntry({
+          faithfulness: 0.9,
+          answer_relevancy: null,
+          context_precision: null,
+          context_recall: 0.8,
+        }),
+      ],
+    });
+    render(<TunerDashboard status={status} onReset={vi.fn()} />);
+
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+    const tooltip = screen.getByTestId('tuner-tooltip');
+    expect(tooltip).toBeInTheDocument();
+  });
+
+  it('single data point shows hover correctly', () => {
+    renderWithHistory(1);
+    const chart = screen.getByTestId('tuner-history-chart');
+    const hoverZones = chart.querySelectorAll('.cursor-crosshair');
+    expect(hoverZones.length).toBe(1);
+
+    fireEvent.mouseEnter(hoverZones[0]!);
+    expect(screen.getByTestId('tuner-tooltip')).toBeInTheDocument();
+  });
+});
+
 // ─── Edge Cases ───────────────────────────────────────────────
 
 describe('TunerDashboard — Edge Cases', () => {
